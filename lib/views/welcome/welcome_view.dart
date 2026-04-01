@@ -30,15 +30,6 @@ class WelcomeView extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                const Text(
-                  "GroupEvent",
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFD8B4FE),
-                  ),
-                ),
-
                 const Spacer(),
 
                 Container(

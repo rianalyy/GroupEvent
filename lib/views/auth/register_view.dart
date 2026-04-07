@@ -4,20 +4,20 @@ import '../../viewmodels/auth_viewmodel.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 
-class LoginView extends StatelessWidget {
-  const LoginView({super.key});
+class RegisterView extends StatelessWidget {
+  const RegisterView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => AuthViewModel(),
-      child: const _LoginBody(),
+      child: const _RegisterBody(),
     );
   }
 }
 
-class _LoginBody extends StatelessWidget {
-  const _LoginBody();
+class _RegisterBody extends StatelessWidget {
+  const _RegisterBody();
 
   InputDecoration _inputDecoration(String hint, IconData icon, {Widget? suffixIcon}) {
     return InputDecoration(
@@ -35,6 +35,10 @@ class _LoginBody extends StatelessWidget {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.secondaryLight, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
       ),
     );
   }
@@ -67,7 +71,7 @@ class _LoginBody extends StatelessWidget {
                           Image.asset('assets/logo.png', width: 80, height: 80, fit: BoxFit.contain),
                           const SizedBox(height: 16),
                           const Text(
-                            'Bon retour !',
+                            'Créer un compte',
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -76,14 +80,25 @@ class _LoginBody extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Connectez-vous à GroupEvent',
+                            'Rejoignez GroupEvent dès maintenant',
                             style: TextStyle(fontSize: 14, color: Colors.white54),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 36),
+
+                    const Text('Nom', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      style: const TextStyle(color: AppColors.white),
+                      onChanged: vm.setName,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: _inputDecoration('Votre nom', Icons.person_outline_rounded),
+                    ),
+
+                    const SizedBox(height: 18),
 
                     const Text('Email', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
@@ -103,7 +118,7 @@ class _LoginBody extends StatelessWidget {
                       onChanged: vm.setPassword,
                       obscureText: vm.obscurePassword,
                       decoration: _inputDecoration(
-                        'Votre mot de passe',
+                        '6 caractères minimum',
                         Icons.lock_outline_rounded,
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -112,6 +127,28 @@ class _LoginBody extends StatelessWidget {
                             size: 20,
                           ),
                           onPressed: vm.toggleObscurePassword,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    const Text('Confirmer le mot de passe', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      style: const TextStyle(color: AppColors.white),
+                      onChanged: vm.setConfirmPassword,
+                      obscureText: vm.obscureConfirm,
+                      decoration: _inputDecoration(
+                        'Répétez votre mot de passe',
+                        Icons.lock_outline_rounded,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            vm.obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: Colors.white54,
+                            size: 20,
+                          ),
+                          onPressed: vm.toggleObscureConfirm,
                         ),
                       ),
                     ),
@@ -140,8 +177,9 @@ class _LoginBody extends StatelessWidget {
                         ),
                       ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
+                    // Bouton S'inscrire
                     Container(
                       width: double.infinity,
                       height: 55,
@@ -162,7 +200,7 @@ class _LoginBody extends StatelessWidget {
                         onPressed: vm.status == AuthStatus.loading
                             ? null
                             : () async {
-                                final success = await vm.login();
+                                final success = await vm.register();
                                 if (success && context.mounted) {
                                   Navigator.pushNamedAndRemoveUntil(
                                     context,
@@ -185,7 +223,7 @@ class _LoginBody extends StatelessWidget {
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                               )
                             : const Text(
-                                'Se connecter',
+                                "Créer mon compte",
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -199,14 +237,14 @@ class _LoginBody extends StatelessWidget {
 
                     Center(
                       child: GestureDetector(
-                        onTap: () => Navigator.pushReplacementNamed(context, AppRoutes.register),
+                        onTap: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
                         child: RichText(
                           text: const TextSpan(
-                            text: "Pas encore de compte ? ",
+                            text: "Déjà un compte ? ",
                             style: TextStyle(color: Colors.white54, fontSize: 14),
                             children: [
                               TextSpan(
-                                text: 'S\'inscrire',
+                                text: 'Se connecter',
                                 style: TextStyle(
                                   color: AppColors.secondaryLight,
                                   fontWeight: FontWeight.w600,
@@ -217,6 +255,8 @@ class _LoginBody extends StatelessWidget {
                         ),
                       ),
                     ),
+
+                    const SizedBox(height: 20),
                   ],
                 );
               },

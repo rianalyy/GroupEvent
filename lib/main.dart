@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/routes/app_routes.dart';
 import 'core/constants/app_colors.dart';
 import 'services/database_service.dart';
@@ -18,7 +19,13 @@ void main() async {
     SessionService.setUser(sessionUser);
   }
 
-  runApp(GroupEventApp(startRoute: sessionUser != null ? AppRoutes.home : AppRoutes.welcome));
+  runApp(
+    ProviderScope(
+      child: GroupEventApp(
+        startRoute: sessionUser != null ? AppRoutes.home : AppRoutes.welcome,
+      ),
+    ),
+  );
 }
 
 class GroupEventApp extends StatelessWidget {

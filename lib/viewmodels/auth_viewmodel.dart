@@ -1,145 +1,162 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/database_service.dart';
 import '../services/session_service.dart';
-import '../models/user_model.dart';
 
 enum AuthStatus { idle, loading, success, error }
 
-class AuthViewModel extends ChangeNotifier {
-  String name = '';
-  String email = '';
-  String password = '';
-  String confirmPassword = '';
+class AuthState {
+  final String name;
+  final String email;
+  final String password;
+  final String confirmPassword;
+  final AuthStatus status;
+  final String errorMessage;
+  final bool obscurePassword;
+  final bool obscureConfirm;
 
-  AuthStatus status = AuthStatus.idle;
-  String errorMessage = '';
-  bool obscurePassword = true;
-  bool obscureConfirm = true;
+  const AuthState({
+    this.name = '',
+    this.email = '',
+    this.password = '',
+    this.confirmPassword = '',
+    this.status = AuthStatus.idle,
+    this.errorMessage = '',
+    this.obscurePassword = true,
+    this.obscureConfirm = true,
+  });
 
-  void setName(String v) { name = v; notifyListeners(); }
-  void setEmail(String v) { email = v; notifyListeners(); }
-  void setPassword(String v) { password = v; notifyListeners(); }
-  void setConfirmPassword(String v) { confirmPassword = v; notifyListeners(); }
-
-  void toggleObscurePassword() {
-    obscurePassword = !obscurePassword;
-    notifyListeners();
+  AuthState copyWith({
+    String? name,
+    String? email,
+    String? password,
+    String? confirmPassword,
+    AuthStatus? status,
+    String? errorMessage,
+    bool? obscurePassword,
+    bool? obscureConfirm,
+  }) {
+    return AuthState(
+      name: name ?? this.name,
+      email: email ?? this.email,
+      password: password ?? this.password,
+      confirmPassword: confirmPassword ?? this.confirmPassword,
+      status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
+      obscurePassword: obscurePassword ?? this.obscurePassword,
+      obscureConfirm: obscureConfirm ?? this.obscureConfirm,
+    );
   }
+}
 
-  void toggleObscureConfirm() {
-    obscureConfirm = !obscureConfirm;
-    notifyListeners();
-  }
+class AuthNotifier extends Notifier<AuthState> {
+  @override
+  AuthState build() => const AuthState();
 
-  void _setError(String msg) {
-    errorMessage = msg;
-    status = AuthStatus.error;
-    notifyListeners();
-  }
+  void setName(String v) => state = state.copyWith(name: v);
+  void setEmail(String v) => state = state.copyWith(email: v);
+  void setPassword(String v) => state = state.copyWith(password: v);
+  void setConfirmPassword(String v) => state = state.copyWith(confirmPassword: v);
 
-  void _setLoading() {
-    errorMessage = '';
-    status = AuthStatus.loading;
-    notifyListeners();
-  }
+  void toggleObscurePassword() =>
+      state = state.copyWith(obscurePassword: !state.obscurePassword);
 
-  void _setSuccess() {
-    status = AuthStatus.success;
-    notifyListeners();
-  }
+  void toggleObscureConfirm() =>
+      state = state.copyWith(obscureConfirm: !state.obscureConfirm);
 
-  void reset() {
-    name = '';
-    email = '';
-    password = '';
-    confirmPassword = '';
-    errorMessage = '';
-    status = AuthStatus.idle;
-    notifyListeners();
-  }
+  void resetForm() => state = const AuthState();
 
-
-  bool _isValidEmail(String e) {
-    return RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(e.trim());
-  }
-
+  bool _isValidEmail(String e) =>
+      RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(e.trim());
 
   Future<bool> register() async {
-    final trimmedName = name.trim();
-    final trimmedEmail = email.trim();
+    final trimmedName = state.name.trim();
+    final trimmedEmail = state.email.trim();
 
     if (trimmedName.isEmpty) {
-      _setError('Veuillez entrer votre nom.');
+      state = state.copyWith(
+          status: AuthStatus.error, errorMessage: 'Veuillez entrer votre nom.');
       return false;
     }
     if (trimmedEmail.isEmpty || !_isValidEmail(trimmedEmail)) {
-      _setError('Adresse email invalide.');
+      state = state.copyWith(
+          status: AuthStatus.error, errorMessage: 'Adresse email invalide.');
       return false;
     }
-    if (password.length < 6) {
-      _setError('Le mot de passe doit contenir au moins 6 caractères.');
+    if (state.password.length < 6) {
+      state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: 'Le mot de passe doit contenir au moins 6 caractères.');
       return false;
     }
-    if (password != confirmPassword) {
-      _setError('Les mots de passe ne correspondent pas.');
+    if (state.password != state.confirmPassword) {
+      state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: 'Les mots de passe ne correspondent pas.');
       return false;
     }
 
-    _setLoading();
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: '');
 
     final user = await DatabaseService.register(
       name: trimmedName,
       email: trimmedEmail,
-      password: password,
+      password: state.password,
     );
 
     if (user == null) {
-      _setError('Cet email est déjà utilisé.');
+      state = state.copyWith(
+          status: AuthStatus.error, errorMessage: 'Cet email est déjà utilisé.');
       return false;
     }
 
     await DatabaseService.saveSession(user.id!);
     SessionService.setUser(user);
-
-    _setSuccess();
+    state = state.copyWith(status: AuthStatus.success);
     return true;
   }
 
   Future<bool> login() async {
-    final trimmedEmail = email.trim();
+    final trimmedEmail = state.email.trim();
 
     if (trimmedEmail.isEmpty || !_isValidEmail(trimmedEmail)) {
-      _setError('Adresse email invalide.');
+      state = state.copyWith(
+          status: AuthStatus.error, errorMessage: 'Adresse email invalide.');
       return false;
     }
-    if (password.isEmpty) {
-      _setError('Veuillez entrer votre mot de passe.');
+    if (state.password.isEmpty) {
+      state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: 'Veuillez entrer votre mot de passe.');
       return false;
     }
 
-    _setLoading();
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: '');
 
     final user = await DatabaseService.login(
       email: trimmedEmail,
-      password: password,
+      password: state.password,
     );
 
     if (user == null) {
-      _setError('Email ou mot de passe incorrect.');
+      state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: 'Email ou mot de passe incorrect.');
       return false;
     }
 
-
     await DatabaseService.saveSession(user.id!);
     SessionService.setUser(user);
-
-    _setSuccess();
+    state = state.copyWith(status: AuthStatus.success);
     return true;
   }
 
   Future<void> logout() async {
     await DatabaseService.clearSession();
     SessionService.clear();
-    reset();
+    state = const AuthState();
   }
 }
+
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);

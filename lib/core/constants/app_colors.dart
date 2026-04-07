@@ -19,7 +19,6 @@ class AppColors {
   static const Color error = Color(0xFFEF4444);
   static const Color info = Color(0xFF3B82F6);
 
-
   static Color glassWhite = Colors.white.withOpacity(0.12);
   static Color glassBorder = Colors.white.withOpacity(0.25);
 

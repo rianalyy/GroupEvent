@@ -14,13 +14,18 @@ class HomeView extends ConsumerStatefulWidget {
   ConsumerState<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderStateMixin {
+class _HomeViewState extends ConsumerState<HomeView>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Forcer le rechargement à chaque fois que HomeView est affiché
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(eventProvider.notifier).loadEvents();
+    });
   }
 
   @override
@@ -48,11 +53,19 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Bonjour, ${user?.name ?? 'vous'} 👋',
-                              style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                          Text(
+                            'Bonjour, ${user?.name ?? 'vous'} 👋',
+                            style: const TextStyle(color: Colors.white70, fontSize: 14),
+                          ),
                           const SizedBox(height: 2),
-                          const Text('GroupEvent',
-                              style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                          const Text(
+                            'GroupEvent',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -61,7 +74,11 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
                         if (value == 'logout') {
                           await ref.read(authProvider.notifier).logout();
                           if (mounted) {
-                            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.welcome, (r) => false);
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              AppRoutes.welcome,
+                              (r) => false,
+                            );
                           }
                         }
                       },
@@ -70,28 +87,34 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
                       itemBuilder: (_) => [
                         const PopupMenuItem(
                           value: 'logout',
-                          child: Row(children: [
-                            Icon(Icons.logout_rounded, color: AppColors.error, size: 18),
-                            SizedBox(width: 10),
-                            Text('Se déconnecter', style: TextStyle(color: AppColors.white)),
-                          ]),
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout_rounded, color: AppColors.error, size: 18),
+                              SizedBox(width: 10),
+                              Text('Se déconnecter', style: TextStyle(color: AppColors.white)),
+                            ],
+                          ),
                         ),
                       ],
                       child: CircleAvatar(
                         radius: 22,
                         backgroundColor: AppColors.glassWhite,
                         child: Text(
-                          user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : '?',
-                          style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          user?.name.isNotEmpty == true
+                              ? user!.name[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -113,37 +136,43 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
                     dividerColor: Colors.transparent,
                     tabs: [
                       Tab(
-                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.event_rounded, size: 16),
-                          const SizedBox(width: 6),
-                          const Text('Mes événements'),
-                          if (eventState.myEvents.isNotEmpty) ...[
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.event_rounded, size: 16),
                             const SizedBox(width: 6),
-                            _Badge(count: eventState.myEvents.length),
+                            const Text('Mes événements'),
+                            if (eventState.myEvents.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              _Badge(count: eventState.myEvents.length),
+                            ],
                           ],
-                        ]),
+                        ),
                       ),
                       Tab(
-                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.mail_rounded, size: 16),
-                          const SizedBox(width: 6),
-                          const Text('Invitations'),
-                          if (eventState.invitedEvents.isNotEmpty) ...[
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.mail_rounded, size: 16),
                             const SizedBox(width: 6),
-                            _Badge(count: eventState.invitedEvents.length, color: AppColors.warning),
+                            const Text('Invitations'),
+                            if (eventState.invitedEvents.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              _Badge(count: eventState.invitedEvents.length, color: AppColors.warning),
+                            ],
                           ],
-                        ]),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               Expanded(
                 child: eventState.isLoading
-                    ? const Center(child: CircularProgressIndicator(color: AppColors.secondaryLight))
+                    ? const Center(
+                        child: CircularProgressIndicator(color: AppColors.secondaryLight),
+                      )
                     : TabBarView(
                         controller: _tabController,
                         children: [
@@ -156,12 +185,17 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
           ),
         ),
       ),
-
       floatingActionButton: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: AppColors.primaryGradient,
-          boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.5), blurRadius: 16, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.5),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: FloatingActionButton(
           onPressed: () => _showCreateEventSheet(context, ref),
@@ -183,21 +217,34 @@ class _MyEventsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (events.isEmpty) {
       return Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.event_note_rounded, size: 72, color: Colors.white.withOpacity(0.2)),
-          const SizedBox(height: 16),
-          const Text('Aucun événement créé', style: TextStyle(color: Colors.white38, fontSize: 15)),
-          const SizedBox(height: 8),
-          const Text('Appuyez sur + pour créer votre premier événement',
-              textAlign: TextAlign.center, style: TextStyle(color: Colors.white24, fontSize: 13)),
-        ]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.event_note_rounded, size: 72, color: Colors.white.withOpacity(0.2)),
+            const SizedBox(height: 16),
+            const Text(
+              'Aucun événement créé',
+              style: TextStyle(color: Colors.white38, fontSize: 15),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Appuyez sur + pour créer votre premier événement',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white24, fontSize: 13),
+            ),
+          ],
+        ),
       );
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: events.length,
       itemBuilder: (context, i) => GestureDetector(
-        onTap: () => Navigator.pushNamed(context, AppRoutes.eventDetail, arguments: events[i].id),
+        onTap: () => Navigator.pushNamed(
+          context,
+          AppRoutes.eventDetail,
+          arguments: events[i].id,
+        ),
         child: _EventCard(event: events[i], isOwner: true, ref: ref),
       ),
     );
@@ -212,21 +259,34 @@ class _InvitedEventsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (events.isEmpty) {
       return Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.mail_outline_rounded, size: 72, color: Colors.white.withOpacity(0.2)),
-          const SizedBox(height: 16),
-          const Text('Aucune invitation reçue', style: TextStyle(color: Colors.white38, fontSize: 15)),
-          const SizedBox(height: 8),
-          const Text("Les événements auxquels vous êtes invité apparaîtront ici",
-              textAlign: TextAlign.center, style: TextStyle(color: Colors.white24, fontSize: 13)),
-        ]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.mail_outline_rounded, size: 72, color: Colors.white.withOpacity(0.2)),
+            const SizedBox(height: 16),
+            const Text(
+              'Aucune invitation reçue',
+              style: TextStyle(color: Colors.white38, fontSize: 15),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Les événements auxquels vous êtes invité apparaîtront ici',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white24, fontSize: 13),
+            ),
+          ],
+        ),
       );
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: events.length,
       itemBuilder: (context, i) => GestureDetector(
-        onTap: () => Navigator.pushNamed(context, AppRoutes.eventDetail, arguments: events[i].id),
+        onTap: () => Navigator.pushNamed(
+          context,
+          AppRoutes.eventDetail,
+          arguments: events[i].id,
+        ),
         child: _EventCard(event: events[i], isOwner: false, ref: null),
       ),
     );
@@ -247,9 +307,11 @@ class _EventCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.09),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isOwner
-            ? Colors.white.withOpacity(0.12)
-            : AppColors.warning.withOpacity(0.3)),
+        border: Border.all(
+          color: isOwner
+              ? Colors.white.withOpacity(0.12)
+              : AppColors.warning.withOpacity(0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,16 +327,27 @@ class _EventCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: AppColors.warning.withOpacity(0.4)),
                   ),
-                  child: const Text('Invité', style: TextStyle(color: AppColors.warning, fontSize: 11, fontWeight: FontWeight.w600)),
+                  child: const Text(
+                    'Invité',
+                    style: TextStyle(color: AppColors.warning, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
                 ),
               Expanded(
-                child: Text(event.title,
-                    style: const TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                child: Text(
+                  event.title,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               if (isOwner && ref != null)
                 GestureDetector(
                   onTap: () async {
-                    if (event.id != null) await ref!.read(eventProvider.notifier).deleteEvent(event.id!);
+                    if (event.id != null) {
+                      await ref!.read(eventProvider.notifier).deleteEvent(event.id!);
+                    }
                   },
                   child: const Icon(Icons.delete_outline_rounded, color: Colors.white30, size: 20),
                 ),
@@ -287,20 +360,29 @@ class _EventCard extends StatelessWidget {
             _InfoRow(icon: Icons.location_on_outlined, text: event.location),
           ],
           const SizedBox(height: 6),
-          _InfoRow(icon: Icons.group_outlined,
-              text: '${event.participants} participant${event.participants > 1 ? 's' : ''}'),
+          _InfoRow(
+            icon: Icons.group_outlined,
+            text: '${event.participants} participant${event.participants > 1 ? 's' : ''}',
+          ),
           const SizedBox(height: 6),
-          _InfoRow(icon: Icons.account_balance_wallet_outlined,
-              text: '${event.budget.toStringAsFixed(0)} Ar', color: AppColors.secondaryLight),
+          _InfoRow(
+            icon: Icons.account_balance_wallet_outlined,
+            text: '${event.budget.toStringAsFixed(0)} Ar',
+            color: AppColors.secondaryLight,
+          ),
           if (event.description != null && event.description!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(10)),
-              child: Text(event.description!,
-                  style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4)),
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                event.description!,
+                style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
+              ),
             ),
           ],
         ],
@@ -317,11 +399,18 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      Icon(icon, size: 15, color: color ?? Colors.white54),
-      const SizedBox(width: 7),
-      Expanded(child: Text(text, style: TextStyle(color: color ?? Colors.white60, fontSize: 13))),
-    ]);
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: color ?? Colors.white54),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(color: color ?? Colors.white60, fontSize: 13),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -333,10 +422,19 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 18, height: 18,
-      decoration: BoxDecoration(color: color.withOpacity(0.25), shape: BoxShape.circle,
-          border: Border.all(color: color.withOpacity(0.5))),
-      child: Center(child: Text('$count', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold))),
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.25),
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Center(
+        child: Text(
+          '$count',
+          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+        ),
+      ),
     );
   }
 }
@@ -355,21 +453,39 @@ void _showCreateEventSheet(BuildContext context, WidgetRef ref) {
     context: context,
     isScrollControlled: true,
     backgroundColor: const Color(0xFF2D0550),
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setModalState) => Padding(
-        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(children: [
-                const Text('Nouvel événement',
-                    style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                const Spacer(),
-                IconButton(icon: const Icon(Icons.close, color: Colors.white54), onPressed: () => Navigator.pop(ctx)),
-              ]),
+              Row(
+                children: [
+                  const Text(
+                    'Nouvel événement',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white54),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
               _SheetField(controller: titleCtrl, hint: "Titre de l'événement *", icon: Icons.celebration_rounded),
               const SizedBox(height: 12),
@@ -377,76 +493,113 @@ void _showCreateEventSheet(BuildContext context, WidgetRef ref) {
               const SizedBox(height: 12),
               _SheetField(controller: locationCtrl, hint: 'Lieu', icon: Icons.location_on_outlined),
               const SizedBox(height: 12),
-              _SheetField(controller: participantsCtrl, hint: 'Nombre de participants', icon: Icons.group_outlined, keyboardType: TextInputType.number),
+              _SheetField(
+                controller: participantsCtrl,
+                hint: 'Nombre de participants',
+                icon: Icons.group_outlined,
+                keyboardType: TextInputType.number,
+              ),
               const SizedBox(height: 12),
-              _SheetField(controller: budgetCtrl, hint: 'Budget total (en Ar)', icon: Icons.account_balance_wallet_outlined, keyboardType: TextInputType.number),
+              _SheetField(
+                controller: budgetCtrl,
+                hint: 'Budget total (en Ar)',
+                icon: Icons.account_balance_wallet_outlined,
+                keyboardType: TextInputType.number,
+              ),
               const SizedBox(height: 12),
               TextField(
                 controller: descriptionCtrl,
                 style: const TextStyle(color: AppColors.white, fontSize: 14),
-                maxLines: 2, minLines: 2,
+                maxLines: 2,
+                minLines: 2,
                 decoration: _sheetInputDeco('Description (optionnel)', Icons.description_outlined),
               ),
-
               const SizedBox(height: 20),
-              const Text('Tâches à faire',
-                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+              const Text(
+                'Tâches à faire',
+                style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 4),
-              const Text('Ajoutez les tâches à répartir entre les participants',
-                  style: TextStyle(color: Colors.white38, fontSize: 12)),
+              const Text(
+                'Ajoutez les tâches à répartir entre les participants',
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
               const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: taskCtrl,
-                    style: const TextStyle(color: AppColors.white, fontSize: 14),
-                    decoration: _sheetInputDeco('Nouvelle tâche', Icons.check_circle_outline_rounded),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: taskCtrl,
+                      style: const TextStyle(color: AppColors.white, fontSize: 14),
+                      decoration: _sheetInputDeco('Nouvelle tâche', Icons.check_circle_outline_rounded),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    final t = taskCtrl.text.trim();
-                    if (t.isNotEmpty) {
-                      setModalState(() { taskTitles.add(t); taskCtrl.clear(); });
-                    }
-                  },
-                  child: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(gradient: AppColors.primaryGradient, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.add, color: Colors.white, size: 22),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      final t = taskCtrl.text.trim();
+                      if (t.isNotEmpty) {
+                        setModalState(() {
+                          taskTitles.add(t);
+                          taskCtrl.clear();
+                        });
+                      }
+                    },
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white, size: 22),
+                    ),
                   ),
-                ),
-              ]),
+                ],
+              ),
               if (taskTitles.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 ...taskTitles.asMap().entries.map((e) => Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.07),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.drag_handle_rounded, color: Colors.white38, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(e.value, style: const TextStyle(color: Colors.white70, fontSize: 13))),
-                    GestureDetector(
-                      onTap: () => setModalState(() => taskTitles.removeAt(e.key)),
-                      child: const Icon(Icons.close, color: Colors.white30, size: 18),
-                    ),
-                  ]),
-                )),
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.drag_handle_rounded, color: Colors.white38, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              e.value,
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => setModalState(() => taskTitles.removeAt(e.key)),
+                            child: const Icon(Icons.close, color: Colors.white30, size: 18),
+                          ),
+                        ],
+                      ),
+                    )),
               ],
-
               const SizedBox(height: 24),
               Container(
-                width: double.infinity, height: 52,
+                width: double.infinity,
+                height: 52,
                 decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    gradient: AppColors.primaryGradient,
-                    boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))]),
+                  borderRadius: BorderRadius.circular(30),
+                  gradient: AppColors.primaryGradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   onPressed: () async {
                     final title = titleCtrl.text.trim();
@@ -454,21 +607,28 @@ void _showCreateEventSheet(BuildContext context, WidgetRef ref) {
                     if (title.isEmpty || date.isEmpty) return;
                     final user = SessionService.currentUser;
                     await ref.read(eventProvider.notifier).addEvent(
-                      EventModel(
-                        title: title, date: date, location: locationCtrl.text.trim(),
-                        participants: int.tryParse(participantsCtrl.text) ?? 1,
-                        budget: double.tryParse(budgetCtrl.text) ?? 0,
-                        description: descriptionCtrl.text.trim(),
-                        creatorId: user?.id,
-                      ),
-                      taskTitles,
-                    );
+                          EventModel(
+                            title: title,
+                            date: date,
+                            location: locationCtrl.text.trim(),
+                            participants: int.tryParse(participantsCtrl.text) ?? 1,
+                            budget: double.tryParse(budgetCtrl.text) ?? 0,
+                            description: descriptionCtrl.text.trim(),
+                            creatorId: user?.id,
+                          ),
+                          taskTitles,
+                        );
                     if (ctx.mounted) Navigator.pop(ctx);
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                  child: const Text("Créer l'événement",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: const Text(
+                    "Créer l'événement",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.white),
+                  ),
                 ),
               ),
             ],
@@ -488,8 +648,10 @@ InputDecoration _sheetInputDeco(String hint, IconData icon) {
     fillColor: Colors.white.withOpacity(0.08),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.secondaryLight, width: 1.5)),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: AppColors.secondaryLight, width: 1.5),
+    ),
   );
 }
 

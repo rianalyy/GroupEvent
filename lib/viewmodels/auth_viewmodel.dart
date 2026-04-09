@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/database_service.dart';
 import '../services/session_service.dart';
+import 'event_viewmodel.dart';
 
 enum AuthStatus { idle, loading, success, error }
 
@@ -59,7 +60,6 @@ class AuthNotifier extends Notifier<AuthState> {
 
   void toggleObscurePassword() =>
       state = state.copyWith(obscurePassword: !state.obscurePassword);
-
   void toggleObscureConfirm() =>
       state = state.copyWith(obscureConfirm: !state.obscureConfirm);
 
@@ -73,13 +73,11 @@ class AuthNotifier extends Notifier<AuthState> {
     final trimmedEmail = state.email.trim();
 
     if (trimmedName.isEmpty) {
-      state = state.copyWith(
-          status: AuthStatus.error, errorMessage: 'Veuillez entrer votre nom.');
+      state = state.copyWith(status: AuthStatus.error, errorMessage: 'Veuillez entrer votre nom.');
       return false;
     }
     if (trimmedEmail.isEmpty || !_isValidEmail(trimmedEmail)) {
-      state = state.copyWith(
-          status: AuthStatus.error, errorMessage: 'Adresse email invalide.');
+      state = state.copyWith(status: AuthStatus.error, errorMessage: 'Adresse email invalide.');
       return false;
     }
     if (state.password.length < 6) {
@@ -96,13 +94,11 @@ class AuthNotifier extends Notifier<AuthState> {
     }
 
     state = state.copyWith(status: AuthStatus.loading, errorMessage: '');
-
     final user = await DatabaseService.register(
       name: trimmedName,
       email: trimmedEmail,
       password: state.password,
     );
-
     if (user == null) {
       state = state.copyWith(
           status: AuthStatus.error, errorMessage: 'Cet email est déjà utilisé.');
@@ -111,6 +107,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
     await DatabaseService.saveSession(user.id!);
     SessionService.setUser(user);
+
+    ref.read(eventProvider.notifier).loadEvents();
+
     state = state.copyWith(status: AuthStatus.success);
     return true;
   }
@@ -119,8 +118,7 @@ class AuthNotifier extends Notifier<AuthState> {
     final trimmedEmail = state.email.trim();
 
     if (trimmedEmail.isEmpty || !_isValidEmail(trimmedEmail)) {
-      state = state.copyWith(
-          status: AuthStatus.error, errorMessage: 'Adresse email invalide.');
+      state = state.copyWith(status: AuthStatus.error, errorMessage: 'Adresse email invalide.');
       return false;
     }
     if (state.password.isEmpty) {
@@ -131,12 +129,10 @@ class AuthNotifier extends Notifier<AuthState> {
     }
 
     state = state.copyWith(status: AuthStatus.loading, errorMessage: '');
-
     final user = await DatabaseService.login(
       email: trimmedEmail,
       password: state.password,
     );
-
     if (user == null) {
       state = state.copyWith(
           status: AuthStatus.error,
@@ -146,6 +142,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
     await DatabaseService.saveSession(user.id!);
     SessionService.setUser(user);
+
+    ref.read(eventProvider.notifier).resetState();
+    ref.read(eventProvider.notifier).loadEvents();
+
     state = state.copyWith(status: AuthStatus.success);
     return true;
   }
@@ -153,6 +153,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> logout() async {
     await DatabaseService.clearSession();
     SessionService.clear();
+    ref.read(eventProvider.notifier).resetState();
     state = const AuthState();
   }
 }

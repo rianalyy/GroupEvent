@@ -16,7 +16,11 @@ class EventState {
     this.isLoading = false,
   });
 
-  EventState copyWith({List<EventModel>? myEvents, List<EventModel>? invitedEvents, bool? isLoading}) {
+  EventState copyWith({
+    List<EventModel>? myEvents,
+    List<EventModel>? invitedEvents,
+    bool? isLoading,
+  }) {
     return EventState(
       myEvents: myEvents ?? this.myEvents,
       invitedEvents: invitedEvents ?? this.invitedEvents,
@@ -34,11 +38,22 @@ class EventNotifier extends Notifier<EventState> {
 
   Future<void> loadEvents() async {
     final user = SessionService.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      state = const EventState();
+      return;
+    }
     state = state.copyWith(isLoading: true);
     final myEvents = await DatabaseService.getEventsByUser(user.id!);
     final invitedEvents = await DatabaseService.getInvitedEvents(user.id!);
-    state = state.copyWith(myEvents: myEvents, invitedEvents: invitedEvents, isLoading: false);
+    state = state.copyWith(
+      myEvents: myEvents,
+      invitedEvents: invitedEvents,
+      isLoading: false,
+    );
+  }
+
+  void resetState() {
+    state = const EventState();
   }
 
   String _generateInviteCode() {
@@ -50,9 +65,13 @@ class EventNotifier extends Notifier<EventState> {
   Future<EventModel> addEvent(EventModel event, List<String> taskTitles) async {
     final code = _generateInviteCode();
     final newEvent = EventModel(
-      title: event.title, date: event.date, location: event.location,
-      participants: event.participants, budget: event.budget,
-      description: event.description, creatorId: event.creatorId,
+      title: event.title,
+      date: event.date,
+      location: event.location,
+      participants: event.participants,
+      budget: event.budget,
+      description: event.description,
+      creatorId: event.creatorId,
       inviteCode: code,
     );
     final id = await DatabaseService.insertEvent(newEvent);
@@ -63,9 +82,14 @@ class EventNotifier extends Notifier<EventState> {
     }
     await loadEvents();
     return EventModel(
-      id: id, title: newEvent.title, date: newEvent.date, location: newEvent.location,
-      participants: newEvent.participants, budget: newEvent.budget,
-      description: newEvent.description, creatorId: newEvent.creatorId,
+      id: id,
+      title: newEvent.title,
+      date: newEvent.date,
+      location: newEvent.location,
+      participants: newEvent.participants,
+      budget: newEvent.budget,
+      description: newEvent.description,
+      creatorId: newEvent.creatorId,
       inviteCode: code,
     );
   }
@@ -76,4 +100,6 @@ class EventNotifier extends Notifier<EventState> {
   }
 }
 
-final eventProvider = NotifierProvider<EventNotifier, EventState>(EventNotifier.new);
+final eventProvider = NotifierProvider<EventNotifier, EventState>(
+  EventNotifier.new,
+);

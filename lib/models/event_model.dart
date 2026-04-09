@@ -7,6 +7,7 @@ class EventModel {
   final double budget;
   final String? description;
   final int? creatorId;
+  final String? inviteCode;
 
   EventModel({
     this.id,
@@ -17,6 +18,7 @@ class EventModel {
     required this.budget,
     this.description,
     this.creatorId,
+    this.inviteCode,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +31,7 @@ class EventModel {
       'budget': budget,
       'description': description ?? '',
       'creator_id': creatorId,
+      'invite_code': inviteCode,
     };
   }
 
@@ -42,6 +45,7 @@ class EventModel {
       budget: (map['budget'] as num).toDouble(),
       description: map['description'],
       creatorId: map['creator_id'],
+      inviteCode: map['invite_code'],
     );
   }
 }

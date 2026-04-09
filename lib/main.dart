@@ -8,29 +8,20 @@ import 'services/session_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final sessionUser = await DatabaseService.getSessionUser();
-  if (sessionUser != null) {
-    SessionService.setUser(sessionUser);
-  }
+  if (sessionUser != null) SessionService.setUser(sessionUser);
 
-  runApp(
-    ProviderScope(
-      child: GroupEventApp(
-        startRoute: sessionUser != null ? AppRoutes.home : AppRoutes.welcome,
-      ),
+  runApp(ProviderScope(
+    child: GroupEventApp(
+      startRoute: sessionUser != null ? AppRoutes.home : AppRoutes.welcome,
     ),
-  );
+  ));
 }
 
 class GroupEventApp extends StatelessWidget {
   final String startRoute;
-
   const GroupEventApp({super.key, required this.startRoute});
 
   @override

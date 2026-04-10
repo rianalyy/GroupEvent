@@ -4,6 +4,7 @@ class TaskModel {
   final String title;
   final bool isDone;
   final int? assignedToGuestId;
+  final String? assignedToGuestName;
 
   TaskModel({
     this.id,
@@ -11,6 +12,7 @@ class TaskModel {
     required this.title,
     this.isDone = false,
     this.assignedToGuestId,
+    this.assignedToGuestName,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,16 +31,18 @@ class TaskModel {
       title: map['title'],
       isDone: map['is_done'] == 1,
       assignedToGuestId: map['assigned_to_guest_id'],
+      assignedToGuestName: map['guest_name'],
     );
   }
 
-  TaskModel copyWith({int? id, bool? isDone, int? assignedToGuestId}) {
+  TaskModel copyWith({int? id, bool? isDone, int? assignedToGuestId, String? assignedToGuestName}) {
     return TaskModel(
       id: id ?? this.id,
       eventId: eventId,
       title: title,
       isDone: isDone ?? this.isDone,
       assignedToGuestId: assignedToGuestId ?? this.assignedToGuestId,
+      assignedToGuestName: assignedToGuestName ?? this.assignedToGuestName,
     );
   }
 }

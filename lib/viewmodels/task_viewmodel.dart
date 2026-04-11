@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task_model.dart';
 import '../models/guest_model.dart';
+import '../models/user_model.dart';
 import '../services/database_service.dart';
 
 class TaskState {
@@ -14,11 +15,7 @@ class TaskState {
     this.isDistributing = false,
   });
 
-  TaskState copyWith({
-    List<TaskModel>? tasks,
-    bool? isLoading,
-    bool? isDistributing,
-  }) {
+  TaskState copyWith({List<TaskModel>? tasks, bool? isLoading, bool? isDistributing}) {
     return TaskState(
       tasks: tasks ?? this.tasks,
       isLoading: isLoading ?? this.isLoading,
@@ -27,16 +24,17 @@ class TaskState {
   }
 
   int get totalTasks => tasks.length;
-  int get doneTasks => tasks.where((t) => t.isDone).length;
+  int get doneTasks  => tasks.where((t) => t.isDone).length;
   double get progressPercent => totalTasks > 0 ? doneTasks / totalTasks : 0.0;
 
-  Map<int?, List<TaskModel>> get tasksByGuest {
-    final map = <int?, List<TaskModel>>{};
-    for (final task in tasks) {
-      map.putIfAbsent(task.assignedToGuestId, () => []).add(task);
-    }
-    return map;
-  }
+  List<TaskModel> tasksForUser(int userId) =>
+      tasks.where((t) => t.assignedToUserId == userId).toList();
+
+  List<TaskModel> tasksForGuest(int guestId) =>
+      tasks.where((t) => t.assignedToGuestId == guestId).toList();
+
+  List<TaskModel> get unassignedTasks =>
+      tasks.where((t) => !t.hasAssignee).toList();
 }
 
 class TaskNotifier extends FamilyNotifier<TaskState, int> {
@@ -68,52 +66,62 @@ class TaskNotifier extends FamilyNotifier<TaskState, int> {
     await loadTasks(eventId);
   }
 
-  Future<void> assignTask(int taskId, int? guestId, int eventId) async {
-    await DatabaseService.updateTaskAssignment(taskId, guestId);
+  Future<void> assignToGuest(int taskId, int? guestId, int eventId) async {
+    await DatabaseService.updateTaskAssignment(taskId, guestId: guestId, userId: null);
     await loadTasks(eventId);
   }
 
-  // Répartition automatique  des tâches 
-  Future<String> autoDistribute(List<GuestModel> guests, int eventId) async {
-    if (guests.isEmpty) {
-      return 'Aucun invité disponible pour la répartition.';
-    }
-    if (state.tasks.isEmpty) {
-      return 'Aucune tâche à répartir.';
-    }
+  Future<void> assignToUser(int taskId, int userId, int eventId) async {
+    await DatabaseService.updateTaskAssignment(taskId, guestId: null, userId: userId);
+    await loadTasks(eventId);
+  }
+
+  Future<void> unassign(int taskId, int eventId) async {
+    await DatabaseService.updateTaskAssignment(taskId, guestId: null, userId: null);
+    await loadTasks(eventId);
+  }
+
+  Future<String> autoDistribute({
+    required List<GuestModel> guests,
+    required UserModel creator,
+    required int eventId,
+  }) async {
+    if (state.tasks.isEmpty) return 'Aucune tâche à répartir.';
 
     state = state.copyWith(isDistributing: true);
 
-    final allTasks = state.tasks;
-    final n = guests.length;
+    final allTasks = List<TaskModel>.from(state.tasks);
+    final totalParticipants = guests.length + 1; 
 
     for (var i = 0; i < allTasks.length; i++) {
-      final assignedGuest = guests[i % n];
-      await DatabaseService.updateTaskAssignment(allTasks[i].id!, assignedGuest.id);
+      final slot = i % totalParticipants;
+      if (slot == 0) {
+        await DatabaseService.updateTaskAssignment(
+          allTasks[i].id!,
+          guestId: null,
+          userId: creator.id,
+        );
+      } else {
+        final guest = guests[slot - 1];
+        await DatabaseService.updateTaskAssignment(
+          allTasks[i].id!,
+          guestId: guest.id,
+          userId: null,
+        );
+      }
     }
 
     await loadTasks(eventId);
     state = state.copyWith(isDistributing: false);
 
-    final tasksPerPerson = (allTasks.length / n).floor();
-    final extra = allTasks.length % n;
-    if (extra == 0) {
-      return '${allTasks.length} tâches réparties : $tasksPerPerson tâche(s) par participant.';
-    } else {
-      return '${allTasks.length} tâches réparties : $tasksPerPerson ou ${tasksPerPerson + 1} tâche(s) par participant.';
-    }
-  }
+    final base  = allTasks.length ~/ totalParticipants;
+    final extra = allTasks.length  % totalParticipants;
+    final detail = extra == 0
+        ? '$base tâche(s) par participant'
+        : '$base ou ${base + 1} tâche(s) par participant';
 
-  Future<void> clearAssignments(int eventId) async {
-    for (final task in state.tasks) {
-      if (task.assignedToGuestId != null) {
-        await DatabaseService.updateTaskAssignment(task.id!, null);
-      }
-    }
-    await loadTasks(eventId);
+    return '${allTasks.length} tâche(s) réparties entre $totalParticipants participants ($detail).';
   }
 }
 
-final taskProvider = NotifierProviderFamily<TaskNotifier, TaskState, int>(
-  TaskNotifier.new,
-);
+final taskProvider = NotifierProviderFamily<TaskNotifier, TaskState, int>(TaskNotifier.new);

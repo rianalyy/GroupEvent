@@ -16,11 +16,7 @@ class EventState {
     this.isLoading = false,
   });
 
-  EventState copyWith({
-    List<EventModel>? myEvents,
-    List<EventModel>? invitedEvents,
-    bool? isLoading,
-  }) {
+  EventState copyWith({List<EventModel>? myEvents, List<EventModel>? invitedEvents, bool? isLoading}) {
     return EventState(
       myEvents: myEvents ?? this.myEvents,
       invitedEvents: invitedEvents ?? this.invitedEvents,
@@ -38,23 +34,14 @@ class EventNotifier extends Notifier<EventState> {
 
   Future<void> loadEvents() async {
     final user = SessionService.currentUser;
-    if (user == null) {
-      state = const EventState();
-      return;
-    }
+    if (user == null) { state = const EventState(); return; }
     state = state.copyWith(isLoading: true);
     final myEvents = await DatabaseService.getEventsByUser(user.id!);
     final invitedEvents = await DatabaseService.getInvitedEvents(user.id!);
-    state = state.copyWith(
-      myEvents: myEvents,
-      invitedEvents: invitedEvents,
-      isLoading: false,
-    );
+    state = state.copyWith(myEvents: myEvents, invitedEvents: invitedEvents, isLoading: false);
   }
 
-  void resetState() {
-    state = const EventState();
-  }
+  void resetState() => state = const EventState();
 
   String _generateInviteCode() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -68,6 +55,8 @@ class EventNotifier extends Notifier<EventState> {
       title: event.title,
       date: event.date,
       location: event.location,
+      latitude: event.latitude,
+      longitude: event.longitude,
       participants: event.participants,
       budget: event.budget,
       description: event.description,
@@ -81,17 +70,14 @@ class EventNotifier extends Notifier<EventState> {
       }
     }
     await loadEvents();
-    return EventModel(
-      id: id,
-      title: newEvent.title,
-      date: newEvent.date,
-      location: newEvent.location,
-      participants: newEvent.participants,
-      budget: newEvent.budget,
-      description: newEvent.description,
-      creatorId: newEvent.creatorId,
-      inviteCode: code,
-    );
+    return newEvent.toMap().containsKey('id')
+        ? EventModel.fromMap({...newEvent.toMap(), 'id': id, 'invite_code': code})
+        : EventModel(
+            id: id, title: newEvent.title, date: newEvent.date,
+            location: newEvent.location, latitude: newEvent.latitude,
+            longitude: newEvent.longitude, participants: newEvent.participants,
+            budget: newEvent.budget, description: newEvent.description,
+            creatorId: newEvent.creatorId, inviteCode: code);
   }
 
   Future<void> deleteEvent(int eventId) async {
@@ -100,6 +86,4 @@ class EventNotifier extends Notifier<EventState> {
   }
 }
 
-final eventProvider = NotifierProvider<EventNotifier, EventState>(
-  EventNotifier.new,
-);
+final eventProvider = NotifierProvider<EventNotifier, EventState>(EventNotifier.new);

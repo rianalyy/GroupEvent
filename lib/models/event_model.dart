@@ -3,6 +3,8 @@ class EventModel {
   final String title;
   final String date;
   final String location;
+  final double? latitude;
+  final double? longitude;
   final int participants;
   final double budget;
   final String? description;
@@ -14,6 +16,8 @@ class EventModel {
     required this.title,
     required this.date,
     required this.location,
+    this.latitude,
+    this.longitude,
     required this.participants,
     required this.budget,
     this.description,
@@ -21,12 +25,16 @@ class EventModel {
     this.inviteCode,
   });
 
+  bool get hasCoordinates => latitude != null && longitude != null;
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'title': title,
       'date': date,
       'location': location,
+      'latitude': latitude,
+      'longitude': longitude,
       'participants': participants,
       'budget': budget,
       'description': description ?? '',
@@ -41,6 +49,8 @@ class EventModel {
       title: map['title'],
       date: map['date'],
       location: map['location'] ?? '',
+      latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
+      longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
       participants: map['participants'],
       budget: (map['budget'] as num).toDouble(),
       description: map['description'],

@@ -24,12 +24,7 @@ class DatabaseService {
       databaseFactory = databaseFactoryFfi;
     }
     final path = join(await getDatabasesPath(), 'groupevent.db');
-    return await openDatabase(
-      path,
-      version: 6,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
+    return await openDatabase(path, version: 9, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   static Future<void> _onCreate(Database db, int version) async {
@@ -53,6 +48,8 @@ class DatabaseService {
         title        TEXT    NOT NULL,
         date         TEXT    NOT NULL,
         location     TEXT    NOT NULL DEFAULT '',
+        latitude     REAL,
+        longitude    REAL,
         participants INTEGER NOT NULL DEFAULT 1,
         budget       REAL    NOT NULL DEFAULT 0,
         description  TEXT    DEFAULT '',
@@ -80,13 +77,16 @@ class DatabaseService {
         title                TEXT    NOT NULL,
         is_done              INTEGER NOT NULL DEFAULT 0,
         assigned_to_guest_id INTEGER,
-        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+        assigned_to_user_id  INTEGER,
+        FOREIGN KEY (event_id)             REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_to_guest_id) REFERENCES guests(id),
+        FOREIGN KEY (assigned_to_user_id)  REFERENCES users(id)
       )
     ''');
   }
 
   static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 6) {
+    if (oldVersion < 9) {
       await db.execute('DROP TABLE IF EXISTS tasks');
       await db.execute('DROP TABLE IF EXISTS guests');
       await db.execute('DROP TABLE IF EXISTS events');
@@ -105,46 +105,29 @@ class DatabaseService {
     required String password,
   }) async {
     final db = await database;
-    final existing = await db.query(
-      'users',
-      where: 'LOWER(email) = LOWER(?)',
-      whereArgs: [email],
-    );
+    final existing = await db.query('users', where: 'LOWER(email) = LOWER(?)', whereArgs: [email]);
     if (existing.isNotEmpty) return null;
     final id = await db.insert('users', {
       'name': name.trim(),
       'email': email.trim().toLowerCase(),
       'password': _hashPassword(password),
     });
-    return UserModel(
-      id: id,
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      password: _hashPassword(password),
-    );
+    return UserModel(id: id, name: name.trim(), email: email.trim().toLowerCase(), password: _hashPassword(password));
   }
 
-  static Future<UserModel?> login({
-    required String email,
-    required String password,
-  }) async {
+  static Future<UserModel?> login({required String email, required String password}) async {
     final db = await database;
-    final result = await db.query(
-      'users',
-      where: 'LOWER(email) = LOWER(?) AND password = ?',
-      whereArgs: [email.trim().toLowerCase(), _hashPassword(password)],
-    );
+    final result = await db.query('users',
+        where: 'LOWER(email) = LOWER(?) AND password = ?',
+        whereArgs: [email.trim().toLowerCase(), _hashPassword(password)]);
     if (result.isEmpty) return null;
     return UserModel.fromMap(result.first);
   }
 
   static Future<UserModel?> getUserByEmail(String email) async {
     final db = await database;
-    final result = await db.query(
-      'users',
-      where: 'LOWER(email) = LOWER(?)',
-      whereArgs: [email.trim().toLowerCase()],
-    );
+    final result = await db.query('users',
+        where: 'LOWER(email) = LOWER(?)', whereArgs: [email.trim().toLowerCase()]);
     if (result.isEmpty) return null;
     return UserModel.fromMap(result.first);
   }
@@ -177,12 +160,8 @@ class DatabaseService {
 
   static Future<List<EventModel>> getEventsByUser(int userId) async {
     final db = await database;
-    final rows = await db.query(
-      'events',
-      where: 'creator_id = ?',
-      whereArgs: [userId],
-      orderBy: 'id DESC',
-    );
+    final rows = await db.query('events',
+        where: 'creator_id = ?', whereArgs: [userId], orderBy: 'id DESC');
     return rows.map((r) => EventModel.fromMap(r)).toList();
   }
 
@@ -194,13 +173,6 @@ class DatabaseService {
       WHERE g.user_id = ? AND e.creator_id != ?
     ''', [userId, userId]);
     return rows.map((r) => EventModel.fromMap(r)).toList();
-  }
-
-  static Future<EventModel?> getEventById(int id) async {
-    final db = await database;
-    final result = await db.query('events', where: 'id = ?', whereArgs: [id]);
-    if (result.isEmpty) return null;
-    return EventModel.fromMap(result.first);
   }
 
   static Future<void> deleteEvent(int eventId) async {
@@ -221,12 +193,7 @@ class DatabaseService {
 
   static Future<void> updateGuestRsvp(int guestId, RsvpStatus status) async {
     final db = await database;
-    await db.update(
-      'guests',
-      {'rsvp_status': status.name},
-      where: 'id = ?',
-      whereArgs: [guestId],
-    );
+    await db.update('guests', {'rsvp_status': status.name}, where: 'id = ?', whereArgs: [guestId]);
   }
 
   static Future<void> deleteGuest(int guestId) async {
@@ -236,11 +203,9 @@ class DatabaseService {
 
   static Future<bool> isAlreadyInvited(String email, int eventId) async {
     final db = await database;
-    final rows = await db.query(
-      'guests',
-      where: 'LOWER(email) = LOWER(?) AND event_id = ?',
-      whereArgs: [email.trim().toLowerCase(), eventId],
-    );
+    final rows = await db.query('guests',
+        where: 'LOWER(email) = LOWER(?) AND event_id = ?',
+        whereArgs: [email.trim().toLowerCase(), eventId]);
     return rows.isNotEmpty;
   }
 
@@ -249,13 +214,13 @@ class DatabaseService {
     return await db.insert('tasks', task.toMap());
   }
 
-  // Retourne les tâches avec le nom de l'invité assigné via JOIN
   static Future<List<TaskModel>> getTasksForEvent(int eventId) async {
     final db = await database;
     final rows = await db.rawQuery('''
-      SELECT t.*, g.name AS guest_name
+      SELECT t.*, COALESCE(g.name, u.name) AS assigned_name
       FROM tasks t
       LEFT JOIN guests g ON g.id = t.assigned_to_guest_id
+      LEFT JOIN users  u ON u.id = t.assigned_to_user_id
       WHERE t.event_id = ?
     ''', [eventId]);
     return rows.map((r) => TaskModel.fromMap(r)).toList();
@@ -263,22 +228,14 @@ class DatabaseService {
 
   static Future<void> updateTaskDone(int taskId, bool isDone) async {
     final db = await database;
-    await db.update(
-      'tasks',
-      {'is_done': isDone ? 1 : 0},
-      where: 'id = ?',
-      whereArgs: [taskId],
-    );
+    await db.update('tasks', {'is_done': isDone ? 1 : 0}, where: 'id = ?', whereArgs: [taskId]);
   }
 
-  static Future<void> updateTaskAssignment(int taskId, int? guestId) async {
+  static Future<void> updateTaskAssignment(int taskId, {int? guestId, int? userId}) async {
     final db = await database;
-    await db.update(
-      'tasks',
-      {'assigned_to_guest_id': guestId},
-      where: 'id = ?',
-      whereArgs: [taskId],
-    );
+    await db.update('tasks',
+        {'assigned_to_guest_id': guestId, 'assigned_to_user_id': userId},
+        where: 'id = ?', whereArgs: [taskId]);
   }
 
   static Future<void> deleteTask(int taskId) async {

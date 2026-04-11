@@ -4,7 +4,8 @@ class TaskModel {
   final String title;
   final bool isDone;
   final int? assignedToGuestId;
-  final String? assignedToGuestName;
+  final int? assignedToUserId;
+  final String? assignedToName;
 
   TaskModel({
     this.id,
@@ -12,7 +13,8 @@ class TaskModel {
     required this.title,
     this.isDone = false,
     this.assignedToGuestId,
-    this.assignedToGuestName,
+    this.assignedToUserId,
+    this.assignedToName,
   });
 
   Map<String, dynamic> toMap() {
@@ -21,6 +23,7 @@ class TaskModel {
       'title': title.trim(),
       'is_done': isDone ? 1 : 0,
       'assigned_to_guest_id': assignedToGuestId,
+      'assigned_to_user_id': assignedToUserId,
     };
   }
 
@@ -31,18 +34,30 @@ class TaskModel {
       title: map['title'],
       isDone: map['is_done'] == 1,
       assignedToGuestId: map['assigned_to_guest_id'],
-      assignedToGuestName: map['guest_name'],
+      assignedToUserId: map['assigned_to_user_id'],
+      assignedToName: map['assigned_name'],
     );
   }
 
-  TaskModel copyWith({int? id, bool? isDone, int? assignedToGuestId, String? assignedToGuestName}) {
+  TaskModel copyWith({
+    int? id,
+    bool? isDone,
+    int? assignedToGuestId,
+    int? assignedToUserId,
+    String? assignedToName,
+  }) {
     return TaskModel(
       id: id ?? this.id,
       eventId: eventId,
       title: title,
       isDone: isDone ?? this.isDone,
       assignedToGuestId: assignedToGuestId ?? this.assignedToGuestId,
-      assignedToGuestName: assignedToGuestName ?? this.assignedToGuestName,
+      assignedToUserId: assignedToUserId ?? this.assignedToUserId,
+      assignedToName: assignedToName ?? this.assignedToName,
     );
   }
+
+  bool isAssignedToUser(int userId) => assignedToUserId == userId;
+  bool isAssignedToGuest(int guestId) => assignedToGuestId == guestId;
+  bool get hasAssignee => assignedToGuestId != null || assignedToUserId != null;
 }

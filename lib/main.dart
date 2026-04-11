@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/routes/app_routes.dart';
 import 'core/constants/app_colors.dart';
 import 'services/database_service.dart';
@@ -8,6 +9,9 @@ import 'services/session_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('fr_FR');
+
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final sessionUser = await DatabaseService.getSessionUser();

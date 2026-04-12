@@ -4,6 +4,7 @@ import '../models/event_model.dart';
 import '../models/task_model.dart';
 import '../services/database_service.dart';
 import '../services/session_service.dart';
+import '../services/notification_service.dart';
 
 class EventState {
   final List<EventModel> myEvents;
@@ -16,7 +17,11 @@ class EventState {
     this.isLoading = false,
   });
 
-  EventState copyWith({List<EventModel>? myEvents, List<EventModel>? invitedEvents, bool? isLoading}) {
+  EventState copyWith({
+    List<EventModel>? myEvents,
+    List<EventModel>? invitedEvents,
+    bool? isLoading,
+  }) {
     return EventState(
       myEvents: myEvents ?? this.myEvents,
       invitedEvents: invitedEvents ?? this.invitedEvents,
@@ -36,9 +41,13 @@ class EventNotifier extends Notifier<EventState> {
     final user = SessionService.currentUser;
     if (user == null) { state = const EventState(); return; }
     state = state.copyWith(isLoading: true);
-    final myEvents = await DatabaseService.getEventsByUser(user.id!);
+    final myEvents     = await DatabaseService.getEventsByUser(user.id!);
     final invitedEvents = await DatabaseService.getInvitedEvents(user.id!);
-    state = state.copyWith(myEvents: myEvents, invitedEvents: invitedEvents, isLoading: false);
+    state = state.copyWith(
+      myEvents: myEvents,
+      invitedEvents: invitedEvents,
+      isLoading: false,
+    );
   }
 
   void resetState() => state = const EventState();
@@ -63,27 +72,52 @@ class EventNotifier extends Notifier<EventState> {
       creatorId: event.creatorId,
       inviteCode: code,
     );
+
     final id = await DatabaseService.insertEvent(newEvent);
+
     for (final title in taskTitles) {
       if (title.trim().isNotEmpty) {
-        await DatabaseService.insertTask(TaskModel(eventId: id, title: title.trim()));
+        await DatabaseService.insertTask(
+            TaskModel(eventId: id, title: title.trim()));
       }
     }
+
+    await NotificationService.scheduleEventReminder(
+      eventId: id,
+      eventTitle: newEvent.title,
+      eventLocation: newEvent.location,
+      eventDate: newEvent.date,
+    );
+
+    await NotificationService.scheduleEarlyReminder(
+      eventId: id,
+      eventTitle: newEvent.title,
+      eventDate: newEvent.date,
+    );
+
     await loadEvents();
-    return newEvent.toMap().containsKey('id')
-        ? EventModel.fromMap({...newEvent.toMap(), 'id': id, 'invite_code': code})
-        : EventModel(
-            id: id, title: newEvent.title, date: newEvent.date,
-            location: newEvent.location, latitude: newEvent.latitude,
-            longitude: newEvent.longitude, participants: newEvent.participants,
-            budget: newEvent.budget, description: newEvent.description,
-            creatorId: newEvent.creatorId, inviteCode: code);
+
+    return EventModel(
+      id: id,
+      title: newEvent.title,
+      date: newEvent.date,
+      location: newEvent.location,
+      latitude: newEvent.latitude,
+      longitude: newEvent.longitude,
+      participants: newEvent.participants,
+      budget: newEvent.budget,
+      description: newEvent.description,
+      creatorId: newEvent.creatorId,
+      inviteCode: code,
+    );
   }
 
   Future<void> deleteEvent(int eventId) async {
+    await NotificationService.cancelEventReminder(eventId);
     await DatabaseService.deleteEvent(eventId);
     await loadEvents();
   }
 }
 
-final eventProvider = NotifierProvider<EventNotifier, EventState>(EventNotifier.new);
+final eventProvider = NotifierProvider<EventNotifier, EventState>(
+    EventNotifier.new);

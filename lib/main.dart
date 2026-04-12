@@ -6,11 +6,14 @@ import 'core/routes/app_routes.dart';
 import 'core/constants/app_colors.dart';
 import 'services/database_service.dart';
 import 'services/session_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await initializeDateFormatting('fr_FR');
+
+  await NotificationService.init();
 
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 

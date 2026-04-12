@@ -9,6 +9,7 @@ import '../../models/guest_model.dart';
 import '../../models/task_model.dart';
 import '../../models/user_model.dart';
 import '../../services/session_service.dart';
+import '../../services/notification_service.dart';
 import '../../viewmodels/event_viewmodel.dart';
 import '../../viewmodels/guest_viewmodel.dart';
 import '../../viewmodels/task_viewmodel.dart';
@@ -27,7 +28,7 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -73,7 +74,6 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
         child: SafeArea(
           child: Column(
             children: [
-              // ── Header ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
                 child: Row(
@@ -86,7 +86,7 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(event!.title,
+                          Text(event.title,
                               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.white),
                               overflow: TextOverflow.ellipsis),
                           if (!isOwner)
@@ -104,7 +104,6 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
                 ),
               ),
 
-              // ── Info Card ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Container(
@@ -119,9 +118,8 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
                       Row(
                         children: [
                           Expanded(
-                            child: _InfoRow(icon: Icons.calendar_today_rounded, text: event!.date),
+                            child: _InfoRow(icon: Icons.calendar_today_rounded, text: event.date),
                           ),
-                          // Lieu cliquable → carte
                           if (event.location.isNotEmpty)
                             Expanded(
                               child: GestureDetector(
@@ -167,7 +165,6 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
 
                       const SizedBox(height: 10),
 
-                      // Budget total + par participant
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
@@ -246,10 +243,26 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
                     unselectedLabelColor: Colors.white54,
                     labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     dividerColor: Colors.transparent,
-                    tabs: const [
-                      Tab(text: 'Invités'),
-                      Tab(text: 'Tâches'),
-                      Tab(text: 'Mon RSVP'),
+                    tabs: [
+                      const Tab(text: 'Invités'),
+                      const Tab(text: 'Tâches'),
+                      const Tab(text: 'Mon RSVP'),
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Jour J', style: TextStyle(fontSize: 12)),
+                            if (NotificationService.isToday(event.date)) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                width: 7, height: 7,
+                                decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -273,6 +286,7 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
                       budget: event.budget,
                     ),
                     _MyRsvpTab(eventId: eventId, currentUserId: currentUser?.id, guestState: guestState, ref: ref),
+                    _JourJTab(event: event, taskState: taskState, guestState: guestState, ref: ref),
                   ],
                 ),
               ),
@@ -334,7 +348,6 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
   }
 }
 
-// ── Envoi email ──
 class _SendEmailsSection extends ConsumerWidget {
   final EventModel event;
   final String link;
@@ -410,7 +423,6 @@ class _SendEmailsSection extends ConsumerWidget {
   }
 }
 
-// ── Tab Invités ──
 class _GuestsTab extends StatelessWidget {
   final GuestState guestState;
   final int eventId;
@@ -1131,4 +1143,432 @@ class _InfoRow extends StatelessWidget {
     const SizedBox(width: 6),
     Expanded(child: Text(text, style: TextStyle(color: color ?? Colors.white60, fontSize: 13))),
   ]);
+}
+
+class _JourJTab extends StatelessWidget {
+  final EventModel event;
+  final TaskState taskState;
+  final GuestState guestState;
+  final WidgetRef ref;
+
+  const _JourJTab({
+    required this.event,
+    required this.taskState,
+    required this.guestState,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isToday   = NotificationService.isToday(event.date);
+    final daysLeft  = NotificationService.daysUntil(event.date);
+    final isPast    = daysLeft < 0;
+    final confirmedGuests = guestState.guests.where((g) => g.rsvpStatus == RsvpStatus.oui).length;
+    final totalTasks = taskState.tasks.length;
+    final doneTasks  = taskState.tasks.where((t) => t.isDone).length;
+    final budgetPerPerson = guestState.guests.isNotEmpty
+        ? event.budget / (guestState.guests.length + 1)
+        : event.budget;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isToday
+                    ? [AppColors.warning.withOpacity(0.25), AppColors.warning.withOpacity(0.1)]
+                    : isPast
+                        ? [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.03)]
+                        : [AppColors.primary.withOpacity(0.25), AppColors.primary.withOpacity(0.1)],
+              ),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isToday
+                    ? AppColors.warning.withOpacity(0.5)
+                    : isPast
+                        ? Colors.white.withOpacity(0.08)
+                        : AppColors.primaryLight.withOpacity(0.3),
+                width: isToday ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: (isToday ? AppColors.warning : isPast ? Colors.white24 : AppColors.primaryLight).withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isToday ? Icons.celebration_rounded : isPast ? Icons.event_busy_rounded : Icons.event_rounded,
+                    color: isToday ? AppColors.warning : isPast ? Colors.white38 : AppColors.secondaryLight,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isToday ? "🎉 C'est aujourd'hui !" : isPast ? 'Événement passé' : 'Compte à rebours',
+                        style: TextStyle(
+                          color: isToday ? AppColors.warning : isPast ? Colors.white38 : AppColors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isToday
+                            ? event.date
+                            : isPast
+                                ? 'Il y a ${(-daysLeft)} jour${(-daysLeft) > 1 ? 's' : ''}'
+                                : daysLeft == 1
+                                    ? 'Demain !'
+                                    : 'Dans $daysLeft jours',
+                        style: TextStyle(
+                          color: isToday ? AppColors.warning.withOpacity(0.8) : Colors.white54,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          const Text(
+            'Checklist de l\'événement',
+            style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Toutes les informations importantes en un coup d\'œil',
+            style: TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+
+          _CheckItem(
+            icon: Icons.title_rounded,
+            label: 'Titre',
+            value: event.title,
+            isDone: event.title.isNotEmpty,
+          ),
+          _CheckItem(
+            icon: Icons.calendar_today_rounded,
+            label: 'Date',
+            value: event.date,
+            isDone: event.date.isNotEmpty,
+          ),
+          _CheckItem(
+            icon: Icons.location_on_rounded,
+            label: 'Lieu',
+            value: event.location.isNotEmpty ? event.location : 'Non défini',
+            isDone: event.location.isNotEmpty,
+            onTap: event.location.isNotEmpty && event.hasCoordinates
+                ? () => Navigator.pushNamed(context, '/map', arguments: {
+                      'location': event.location,
+                      'title': event.title,
+                      'latitude': event.latitude,
+                      'longitude': event.longitude,
+                    })
+                : null,
+            actionIcon: event.location.isNotEmpty ? Icons.map_outlined : null,
+          ),
+          _CheckItem(
+            icon: Icons.group_rounded,
+            label: 'Participants confirmés',
+            value: '$confirmedGuests confirmé(s) / ${guestState.guests.length} invité(s)',
+            isDone: confirmedGuests > 0,
+          ),
+          _CheckItem(
+            icon: Icons.account_balance_wallet_rounded,
+            label: 'Budget',
+            value: event.budget > 0
+                ? '${event.budget.toStringAsFixed(0)} Ar total · ${budgetPerPerson.toStringAsFixed(0)} Ar/pers.'
+                : 'Non défini',
+            isDone: event.budget > 0,
+          ),
+          _CheckItem(
+            icon: Icons.task_alt_rounded,
+            label: 'Tâches',
+            value: totalTasks > 0
+                ? '$doneTasks / $totalTasks terminée(s)'
+                : 'Aucune tâche définie',
+            isDone: totalTasks > 0 && doneTasks == totalTasks,
+            isWarning: totalTasks > 0 && doneTasks < totalTasks,
+          ),
+          _CheckItem(
+            icon: Icons.description_rounded,
+            label: 'Description',
+            value: (event.description != null && event.description!.isNotEmpty)
+                ? event.description!
+                : 'Non renseignée',
+            isDone: event.description != null && event.description!.isNotEmpty,
+            isOptional: true,
+          ),
+
+          const SizedBox(height: 20),
+
+          if (totalTasks > 0) ...[
+            const Text('Tâches du jour', style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text('Avancement des tâches de l\'événement', style: TextStyle(color: Colors.white38, fontSize: 12)),
+            const SizedBox(height: 12),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '$doneTasks / $totalTasks tâches terminées',
+                        style: const TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        '${totalTasks > 0 ? (doneTasks / totalTasks * 100).toInt() : 0}%',
+                        style: TextStyle(
+                          color: doneTasks == totalTasks ? AppColors.success : AppColors.secondaryLight,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: totalTasks > 0 ? doneTasks / totalTasks : 0,
+                      minHeight: 8,
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        doneTasks == totalTasks ? AppColors.success : AppColors.secondaryLight,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ...taskState.tasks.map((task) {
+                    final assignee = task.assignedToName;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 20, height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: task.isDone ? AppColors.success : Colors.transparent,
+                              border: Border.all(
+                                color: task.isDone ? AppColors.success : Colors.white38,
+                                width: 2,
+                              ),
+                            ),
+                            child: task.isDone
+                                ? const Icon(Icons.check, color: Colors.white, size: 12)
+                                : null,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: TextStyle(
+                                color: task.isDone ? Colors.white38 : AppColors.white,
+                                fontSize: 13,
+                                decoration: task.isDone ? TextDecoration.lineThrough : null,
+                                decorationColor: Colors.white38,
+                              ),
+                            ),
+                          ),
+                          if (assignee != null && assignee.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondaryLight.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                assignee,
+                                style: const TextStyle(color: AppColors.secondaryLight, fontSize: 10, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
+
+          if (guestState.guests.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Text('Présence', style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text('Statut RSVP des participants', style: TextStyle(color: Colors.white38, fontSize: 12)),
+            const SizedBox(height: 12),
+            ...guestState.guests.map((g) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: g.rsvpStatus.color.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: g.rsvpStatus.color.withOpacity(0.15),
+                    child: Text(
+                      g.name.isNotEmpty ? g.name[0].toUpperCase() : '?',
+                      style: TextStyle(color: g.rsvpStatus.color, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(g.name, style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: g.rsvpStatus.color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: g.rsvpStatus.color.withOpacity(0.35)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(g.rsvpStatus.icon, color: g.rsvpStatus.color, size: 12),
+                      const SizedBox(width: 4),
+                      Text(g.rsvpStatus.label,
+                          style: TextStyle(color: g.rsvpStatus.color, fontSize: 11, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                ],
+              ),
+            )),
+          ],
+
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _CheckItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isDone;
+  final bool isWarning;
+  final bool isOptional;
+  final VoidCallback? onTap;
+  final IconData? actionIcon;
+
+  const _CheckItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.isDone,
+    this.isWarning = false,
+    this.isOptional = false,
+    this.onTap,
+    this.actionIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color statusColor = isDone
+        ? AppColors.success
+        : isWarning
+            ? AppColors.warning
+            : isOptional
+                ? Colors.white24
+                : AppColors.error;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDone
+                ? AppColors.success.withOpacity(0.2)
+                : isWarning
+                    ? AppColors.warning.withOpacity(0.25)
+                    : Colors.white.withOpacity(0.07),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: statusColor, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: isDone ? AppColors.white : isWarning ? AppColors.warning : Colors.white38,
+                      fontSize: 13,
+                      fontWeight: isDone ? FontWeight.w500 : FontWeight.normal,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (actionIcon != null)
+              Icon(actionIcon, color: AppColors.secondaryLight, size: 16)
+            else
+              Container(
+                width: 22, height: 22,
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isDone ? Icons.check_rounded : isWarning ? Icons.warning_amber_rounded : isOptional ? Icons.remove_rounded : Icons.close_rounded,
+                  color: statusColor,
+                  size: 14,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -69,7 +69,6 @@ class NotificationService {
       if (bestMatch != null) {
         tz.setLocalLocation(bestMatch);
       } else {
-        // Fallback : créer un offset fixe
         tz.setLocalLocation(tz.UTC);
       }
     } catch (_) {
@@ -77,7 +76,6 @@ class NotificationService {
     }
   }
 
-  // Planifie une notification pour le jour J à 8h00 du matin
   static Future<void> scheduleEventReminder({
     required int eventId,
     required String eventTitle,
@@ -90,7 +88,6 @@ class NotificationService {
     final eventDay = _parseEventDate(eventDate);
     if (eventDay == null) return;
 
-    // Notification à 8h00 le jour de l'événement
     final reminderTime = DateTime(
       eventDay.year,
       eventDay.month,
@@ -98,7 +95,6 @@ class NotificationService {
       8, 0, 0,
     );
 
-    // Ne pas planifier si la date est déjà passée
     if (reminderTime.isBefore(DateTime.now())) return;
 
     final tzTime = tz.TZDateTime.from(reminderTime, tz.local);
@@ -144,7 +140,6 @@ class NotificationService {
     );
   }
 
-  // Planifie aussi un rappel 24h avant l'événement
   static Future<void> scheduleEarlyReminder({
     required int eventId,
     required String eventTitle,
@@ -188,48 +183,39 @@ class NotificationService {
     );
   }
 
-  // Annuler toutes les notifications d'un événement
   static Future<void> cancelEventReminder(int eventId) async {
     if (Platform.isLinux || Platform.isWindows) return;
     await _plugin.cancel(eventId.hashCode);
     await _plugin.cancel(eventId.hashCode + 10000);
   }
 
-  // Annuler toutes les notifications
   static Future<void> cancelAll() async {
     if (Platform.isLinux || Platform.isWindows) return;
     await _plugin.cancelAll();
   }
 
-  // Parse la date stockée dans l'événement (plusieurs formats possibles)
   static DateTime? _parseEventDate(String dateStr) {
     if (dateStr.trim().isEmpty) return null;
 
-    // Format principal : "ven. 20 juin 2025 · 18:00"
     try {
       final cleaned = dateStr.replaceAll('·', '').replaceAll('  ', ' ').trim();
       return DateFormat('EEE d MMM yyyy HH:mm', 'fr_FR').parse(cleaned);
     } catch (_) {}
 
-    // Sans heure : "ven. 20 juin 2025"
     try {
       final cleaned = dateStr.replaceAll('·', '').trim().split(' ').take(4).join(' ');
       return DateFormat('EEE d MMM yyyy', 'fr_FR').parse(cleaned);
     } catch (_) {}
 
-    // Format ISO : "2025-06-20T18:00:00"
     try { return DateTime.parse(dateStr); } catch (_) {}
 
-    // Format simple : "20 Avril 2025"
     try { return DateFormat('d MMMM yyyy', 'fr_FR').parse(dateStr); } catch (_) {}
 
-    // Format court : "20 Avr. 2025"
     try { return DateFormat('d MMM yyyy', 'fr_FR').parse(dateStr); } catch (_) {}
 
     return null;
   }
 
-  // Vérifie si la date de l'événement est aujourd'hui
   static bool isToday(String dateStr) {
     final eventDay = _parseEventDate(dateStr);
     if (eventDay == null) return false;
@@ -239,7 +225,6 @@ class NotificationService {
         eventDay.day == now.day;
   }
 
-  // Vérifie si l'événement est dans le futur (pas encore passé)
   static bool isFuture(String dateStr) {
     final eventDay = _parseEventDate(dateStr);
     if (eventDay == null) return false;
@@ -248,7 +233,6 @@ class NotificationService {
     return eventDay.isAfter(todayStart);
   }
 
-  // Nombre de jours restants avant le jour J (négatif = passé)
   static int daysUntil(String dateStr) {
     final eventDay = _parseEventDate(dateStr);
     if (eventDay == null) return -999;

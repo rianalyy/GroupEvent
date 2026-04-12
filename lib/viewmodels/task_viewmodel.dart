@@ -91,7 +91,7 @@ class TaskNotifier extends FamilyNotifier<TaskState, int> {
     state = state.copyWith(isDistributing: true);
 
     final allTasks = List<TaskModel>.from(state.tasks);
-    final totalParticipants = guests.length + 1; 
+    final totalParticipants = guests.length + 1;
 
     for (var i = 0; i < allTasks.length; i++) {
       final slot = i % totalParticipants;

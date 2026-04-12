@@ -8,6 +8,7 @@ import '../models/user_model.dart';
 import '../models/event_model.dart';
 import '../models/guest_model.dart';
 import '../models/task_model.dart';
+import '../models/chat_message_model.dart';
 
 class DatabaseService {
   static Database? _database;
@@ -24,7 +25,7 @@ class DatabaseService {
       databaseFactory = databaseFactoryFfi;
     }
     final path = join(await getDatabasesPath(), 'groupevent.db');
-    return await openDatabase(path, version: 9, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 10, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   static Future<void> _onCreate(Database db, int version) async {
@@ -83,10 +84,21 @@ class DatabaseService {
         FOREIGN KEY (assigned_to_user_id)  REFERENCES users(id)
       )
     ''');
+    await db.execute('''
+      CREATE TABLE chat_messages (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id  INTEGER NOT NULL,
+        user_id   INTEGER NOT NULL,
+        user_name TEXT    NOT NULL,
+        message   TEXT    NOT NULL,
+        sent_at   TEXT    NOT NULL,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 9) {
+    if (oldVersion < 10) {
       await db.execute('DROP TABLE IF EXISTS tasks');
       await db.execute('DROP TABLE IF EXISTS guests');
       await db.execute('DROP TABLE IF EXISTS events');
@@ -241,5 +253,21 @@ class DatabaseService {
   static Future<void> deleteTask(int taskId) async {
     final db = await database;
     await db.delete('tasks', where: 'id = ?', whereArgs: [taskId]);
+  }
+  static Future<int> insertMessage(ChatMessageModel msg) async {
+    final db = await database;
+    return await db.insert('chat_messages', msg.toMap());
+  }
+
+  static Future<List<ChatMessageModel>> getMessages(int eventId) async {
+    final db = await database;
+    final rows = await db.query('chat_messages',
+        where: 'event_id = ?', whereArgs: [eventId], orderBy: 'sent_at ASC');
+    return rows.map((r) => ChatMessageModel.fromMap(r)).toList();
+  }
+
+  static Future<void> deleteMessage(int messageId) async {
+    final db = await database;
+    await db.delete('chat_messages', where: 'id = ?', whereArgs: [messageId]);
   }
 }

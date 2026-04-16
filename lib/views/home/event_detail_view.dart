@@ -118,53 +118,49 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
                   ),
                   child: Column(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _InfoRow(icon: Icons.calendar_today_rounded, text: event!.date),
+                      _InfoRow(icon: Icons.calendar_today_rounded, text: event!.date),
+                      if (event.location.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.map,
+                            arguments: {
+                              'location':  event!.location,
+                              'title':     event.title,
+                              'latitude':  event.latitude,
+                              'longitude': event.longitude,
+                            },
                           ),
-                          if (event.location.isNotEmpty)
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.map,
-                                  arguments: {
-                                    'location':  event!.location,
-                                    'title':     event.title,
-                                    'latitude':  event.latitude,
-                                    'longitude': event.longitude,
-                                  },
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.error.withOpacity(0.08),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: AppColors.error.withOpacity(0.2)),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.error.withOpacity(0.2)),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.location_on_rounded, color: AppColors.error, size: 15),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  event.location,
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                    fontSize: 13,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: AppColors.error,
                                   ),
-                                  child: Row(children: [
-                                    const Icon(Icons.location_on_rounded, color: AppColors.error, size: 14),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        event.location,
-                                        style: const TextStyle(
-                                          color: AppColors.error,
-                                          fontSize: 12,
-                                          decoration: TextDecoration.underline,
-                                          decorationColor: AppColors.error,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const Icon(Icons.map_outlined, color: AppColors.error, size: 12),
-                                  ]),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.map_outlined, color: AppColors.error, size: 14),
+                            ]),
+                          ),
+                        ),
+                      ],
 
                       const SizedBox(height: 10),
 
@@ -232,63 +228,66 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
-                  height: 40,
+                  height: 52,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: TabBar(
                     controller: _tabs,
-                    indicator: BoxDecoration(borderRadius: BorderRadius.circular(8), gradient: AppColors.primaryGradient),
+                    indicator: BoxDecoration(borderRadius: BorderRadius.circular(10), gradient: AppColors.primaryGradient),
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white54,
-                    labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    unselectedLabelColor: Colors.white38,
+                    labelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
                     dividerColor: Colors.transparent,
+                    isScrollable: false,
                     tabs: [
-                      const Tab(text: 'Invités'),
-                      const Tab(text: 'Tâches'),
-                      const Tab(text: 'Mon RSVP'),
+                      const Tab(icon: Icon(Icons.people_rounded, size: 20), text: 'Invités'),
+                      const Tab(icon: Icon(Icons.task_alt_rounded, size: 20), text: 'Tâches'),
+                      const Tab(icon: Icon(Icons.how_to_vote_rounded, size: 20), text: 'RSVP'),
                       Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
+                        icon: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
                           children: [
-                            const Text('Jour J', style: TextStyle(fontSize: 12)),
-                            if (NotificationService.isToday(event!.date)) ...[
-                              const SizedBox(width: 4),
-                              Container(
-                                width: 7, height: 7,
-                                decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+                            const Icon(Icons.alarm_rounded, size: 20),
+                            if (NotificationService.isToday(event!.date))
+                              Positioned(
+                                top: -2, right: -4,
+                                child: Container(
+                                  width: 7, height: 7,
+                                  decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+                                ),
                               ),
-                            ],
                           ],
                         ),
+                        text: 'Jour J',
                       ),
                       Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
+                        icon: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
                           children: [
-                            const Icon(Icons.chat_bubble_outline_rounded, size: 14),
-                            const SizedBox(width: 4),
-                            const Text('Chat', style: TextStyle(fontSize: 12)),
-                            if (chatState.messages.isNotEmpty) ...[
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondaryLight.withOpacity(0.25),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${chatState.messages.length}',
-                                  style: const TextStyle(color: AppColors.secondaryLight, fontSize: 10, fontWeight: FontWeight.bold),
+                            const Icon(Icons.chat_bubble_outline_rounded, size: 20),
+                            if (chatState.messages.isNotEmpty)
+                              Positioned(
+                                top: -4, right: -6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondaryLight,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${chatState.messages.length}',
+                                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ),
-                            ],
                           ],
                         ),
+                        text: 'Chat',
                       ),
                     ],
                   ),
@@ -1087,6 +1086,11 @@ class _MyRsvpTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (currentUserId == null) return const SizedBox();
+
+    if (guestState.isLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.secondaryLight));
+    }
+
     GuestModel? myGuest;
     try { myGuest = guestState.guests.firstWhere((g) => g.userId == currentUserId); }
     catch (_) { myGuest = null; }

@@ -24,7 +24,7 @@ class TaskState {
   }
 
   int get totalTasks => tasks.length;
-  int get doneTasks  => tasks.where((t) => t.isDone).length;
+  int get doneTasks => tasks.where((t) => t.isDone).length;
   double get progressPercent => totalTasks > 0 ? doneTasks / totalTasks : 0.0;
 
   List<TaskModel> tasksForUser(int userId) =>
@@ -40,14 +40,14 @@ class TaskState {
 class TaskNotifier extends FamilyNotifier<TaskState, int> {
   @override
   TaskState build(int eventId) {
-    loadTasks(eventId);
+    Future.microtask(() => loadTasks(eventId));
     return const TaskState(isLoading: true);
   }
 
   Future<void> loadTasks(int eventId) async {
     state = state.copyWith(isLoading: true);
     final tasks = await DatabaseService.getTasksForEvent(eventId);
-    state = state.copyWith(tasks: tasks, isLoading: false);
+    state = TaskState(tasks: tasks, isLoading: false);
   }
 
   Future<void> toggleTask(int taskId, bool isDone, int eventId) async {
@@ -89,33 +89,24 @@ class TaskNotifier extends FamilyNotifier<TaskState, int> {
     if (state.tasks.isEmpty) return 'Aucune tâche à répartir.';
 
     state = state.copyWith(isDistributing: true);
-
     final allTasks = List<TaskModel>.from(state.tasks);
     final totalParticipants = guests.length + 1;
 
     for (var i = 0; i < allTasks.length; i++) {
       final slot = i % totalParticipants;
       if (slot == 0) {
-        await DatabaseService.updateTaskAssignment(
-          allTasks[i].id!,
-          guestId: null,
-          userId: creator.id,
-        );
+        await DatabaseService.updateTaskAssignment(allTasks[i].id!, guestId: null, userId: creator.id);
       } else {
         final guest = guests[slot - 1];
-        await DatabaseService.updateTaskAssignment(
-          allTasks[i].id!,
-          guestId: guest.id,
-          userId: null,
-        );
+        await DatabaseService.updateTaskAssignment(allTasks[i].id!, guestId: guest.id, userId: null);
       }
     }
 
     await loadTasks(eventId);
     state = state.copyWith(isDistributing: false);
 
-    final base  = allTasks.length ~/ totalParticipants;
-    final extra = allTasks.length  % totalParticipants;
+    final base = allTasks.length ~/ totalParticipants;
+    final extra = allTasks.length % totalParticipants;
     final detail = extra == 0
         ? '$base tâche(s) par participant'
         : '$base ou ${base + 1} tâche(s) par participant';

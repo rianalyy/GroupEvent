@@ -15,15 +15,12 @@ class NotificationService {
   static Future<void> init() async {
     if (_initialized) return;
 
-    // Les notifications ne sont pas supportées sur Linux desktop
     if (Platform.isLinux || Platform.isWindows) {
       _initialized = true;
       return;
     }
 
-    // Initialiser les fuseaux horaires
     tz_data.initializeTimeZones();
-    // Détecter le fuseau horaire local à partir du décalage UTC
     _setLocalTimezone();
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -37,7 +34,6 @@ class NotificationService {
       const InitializationSettings(android: android, iOS: ios),
     );
 
-    // Demander la permission sur Android 13+
     if (Platform.isAndroid) {
       await _plugin
           .resolvePlatformSpecificImplementation<
@@ -48,13 +44,11 @@ class NotificationService {
     _initialized = true;
   }
 
-  // Détecte la timezone locale depuis le décalage UTC de DateTime.now()
   static void _setLocalTimezone() {
     try {
       final offsetInHours = DateTime.now().timeZoneOffset.inHours;
       final offsetInMinutes = DateTime.now().timeZoneOffset.inMinutes;
 
-      // Trouver une timezone qui correspond à l'offset
       final locations = tz.timeZoneDatabase.locations;
       tz.Location? bestMatch;
 
@@ -63,7 +57,6 @@ class NotificationService {
         final locOffset = loc.currentTimeZone.offset ~/ 1000 ~/ 60;
         if (locOffset == offsetInMinutes) {
           bestMatch = loc;
-          // Préférer les grandes villes connues
           if (entry.key.contains('Indian/Antananarivo') ||
               entry.key.contains('Africa/Nairobi') ||
               entry.key.contains('Europe/Paris') ||
@@ -76,7 +69,6 @@ class NotificationService {
       if (bestMatch != null) {
         tz.setLocalLocation(bestMatch);
       } else {
-        // Fallback : créer un offset fixe
         tz.setLocalLocation(tz.UTC);
       }
     } catch (_) {
@@ -84,7 +76,6 @@ class NotificationService {
     }
   }
 
-  // Planifie une notification pour le jour J à 8h00 du matin
   static Future<void> scheduleEventReminder({
     required int eventId,
     required String eventTitle,

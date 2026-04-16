@@ -124,7 +124,7 @@ class _HomeViewState extends ConsumerState<HomeView>
                         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                           const Icon(Icons.event_rounded, size: 16),
                           const SizedBox(width: 6),
-                          const Text('Mes événements'),
+                          const Flexible(child: Text('Mes événements', overflow: TextOverflow.ellipsis, maxLines: 1)),
                           if (eventState.myEvents.isNotEmpty) ...[
                             const SizedBox(width: 6),
                             _Badge(count: eventState.myEvents.length),
@@ -135,7 +135,7 @@ class _HomeViewState extends ConsumerState<HomeView>
                         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                           const Icon(Icons.mail_rounded, size: 16),
                           const SizedBox(width: 6),
-                          const Text('Invitations'),
+                          const Flexible(child: Text('Invitations', overflow: TextOverflow.ellipsis, maxLines: 1)),
                           if (eventState.invitedEvents.isNotEmpty) ...[
                             const SizedBox(width: 6),
                             _Badge(count: eventState.invitedEvents.length, color: AppColors.warning),

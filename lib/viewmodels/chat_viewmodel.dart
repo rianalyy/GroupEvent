@@ -18,14 +18,14 @@ class ChatState {
 class ChatNotifier extends FamilyNotifier<ChatState, int> {
   @override
   ChatState build(int eventId) {
-    loadMessages(eventId);
+    Future.microtask(() => loadMessages(eventId));
     return const ChatState(isLoading: true);
   }
 
   Future<void> loadMessages(int eventId) async {
     state = state.copyWith(isLoading: true);
     final messages = await DatabaseService.getMessages(eventId);
-    state = state.copyWith(messages: messages, isLoading: false);
+    state = ChatState(messages: messages, isLoading: false);
   }
 
   Future<void> sendMessage({

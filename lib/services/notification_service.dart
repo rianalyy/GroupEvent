@@ -8,237 +8,105 @@ import 'package:intl/intl.dart';
 class NotificationService {
   NotificationService._();
 
-  static final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static bool get _skip => Platform.isLinux || Platform.isWindows;
 
   static Future<void> init() async {
-    if (_initialized) return;
-
-    if (Platform.isLinux || Platform.isWindows) {
-      _initialized = true;
-      return;
-    }
-
+    if (_initialized || _skip) { _initialized = true; return; }
     tz_data.initializeTimeZones();
-    _setLocalTimezone();
-
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const ios = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-
-    await _plugin.initialize(
-      const InitializationSettings(android: android, iOS: ios),
-    );
-
+    _setTimezone();
+    await _plugin.initialize(const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(requestAlertPermission: true, requestBadgePermission: true, requestSoundPermission: true),
+    ));
     if (Platform.isAndroid) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+      await _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
     }
-
     _initialized = true;
   }
 
-  static void _setLocalTimezone() {
+  static void _setTimezone() {
     try {
-      final offsetInHours = DateTime.now().timeZoneOffset.inHours;
-      final offsetInMinutes = DateTime.now().timeZoneOffset.inMinutes;
-
-      final locations = tz.timeZoneDatabase.locations;
-      tz.Location? bestMatch;
-
-      for (final entry in locations.entries) {
-        final loc = entry.value;
-        final locOffset = loc.currentTimeZone.offset ~/ 1000 ~/ 60;
-        if (locOffset == offsetInMinutes) {
-          bestMatch = loc;
-          if (entry.key.contains('Indian/Antananarivo') ||
-              entry.key.contains('Africa/Nairobi') ||
-              entry.key.contains('Europe/Paris') ||
-              entry.key.contains('America/New_York')) {
-            break;
-          }
+      final offset = DateTime.now().timeZoneOffset.inMinutes;
+      for (final entry in tz.timeZoneDatabase.locations.entries) {
+        if (entry.value.currentTimeZone.offset ~/ 1000 ~/ 60 == offset) {
+          tz.setLocalLocation(entry.value);
+          return;
         }
       }
-
-      if (bestMatch != null) {
-        tz.setLocalLocation(bestMatch);
-      } else {
-        tz.setLocalLocation(tz.UTC);
-      }
-    } catch (_) {
-      tz.setLocalLocation(tz.UTC);
-    }
+    } catch (_) { tz.setLocalLocation(tz.UTC); }
   }
 
-  static Future<void> scheduleEventReminder({
-    required int eventId,
-    required String eventTitle,
-    required String eventLocation,
-    required String eventDate,
-  }) async {
+  static Future<void> scheduleEventReminder({required int eventId, required String eventTitle, required String eventLocation, required String eventDate}) async {
     await init();
-    if (Platform.isLinux || Platform.isWindows) return;
-
-    final eventDay = _parseEventDate(eventDate);
-    if (eventDay == null) return;
-
-    final reminderTime = DateTime(
-      eventDay.year,
-      eventDay.month,
-      eventDay.day,
-      8, 0, 0,
-    );
-
-    if (reminderTime.isBefore(DateTime.now())) return;
-
-    final tzTime = tz.TZDateTime.from(reminderTime, tz.local);
-
-    final androidDetails = AndroidNotificationDetails(
-      'groupevent_reminders',
-      'Rappels GroupEvent',
-      channelDescription: "Rappels pour le jour J de vos événements",
-      importance: Importance.high,
-      priority: Priority.high,
-      color: const Color(0xFF7C3AED),
-      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-      styleInformation: BigTextStyleInformation(
-        eventLocation.isNotEmpty
-            ? 'Votre événement "$eventTitle" se déroule aujourd\'hui à $eventLocation. Bonne fête ! 🎉'
-            : 'Votre événement "$eventTitle" se déroule aujourd\'hui. Bonne fête ! 🎉',
-        htmlFormatBigText: false,
-        contentTitle: '🎉 Jour J — $eventTitle',
-        htmlFormatContentTitle: false,
-        summaryText: "Rappel d'événement GroupEvent",
-      ),
-    );
-
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-      subtitle: "C'est aujourd'hui !",
-    );
-
-    await _plugin.zonedSchedule(
-      eventId.hashCode,
+    if (_skip) return;
+    final day = _parseDate(eventDate);
+    if (day == null) return;
+    final t = DateTime(day.year, day.month, day.day, 8);
+    if (t.isBefore(DateTime.now())) return;
+    await _plugin.zonedSchedule(eventId.hashCode,
       '🎉 Jour J — $eventTitle',
-      eventLocation.isNotEmpty
-          ? 'Aujourd\'hui à $eventLocation !'
-          : "Votre événement se déroule aujourd'hui !",
-      tzTime,
-      NotificationDetails(android: androidDetails, iOS: iosDetails),
+      eventLocation.isNotEmpty ? 'Aujourd\'hui à $eventLocation !' : 'Votre événement se déroule aujourd\'hui !',
+      tz.TZDateTime.from(t, tz.local),
+      NotificationDetails(
+        android: AndroidNotificationDetails('groupevent_reminders', 'Rappels GroupEvent',
+            channelDescription: 'Rappels jour J', importance: Importance.high, priority: Priority.high,
+            color: const Color(0xFF7C3AED)),
+        iOS: const DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true),
+      ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: '$eventId',
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
-  static Future<void> scheduleEarlyReminder({
-    required int eventId,
-    required String eventTitle,
-    required String eventDate,
-  }) async {
+  static Future<void> scheduleEarlyReminder({required int eventId, required String eventTitle, required String eventDate}) async {
     await init();
-    if (Platform.isLinux || Platform.isWindows) return;
-
-    final eventDay = _parseEventDate(eventDate);
-    if (eventDay == null) return;
-
-    final reminderTime = eventDay.subtract(const Duration(hours: 24));
-    if (reminderTime.isBefore(DateTime.now())) return;
-
-    final tzTime = tz.TZDateTime.from(reminderTime, tz.local);
-
-    const androidDetails = AndroidNotificationDetails(
-      'groupevent_early',
-      'Rappels anticipés GroupEvent',
-      channelDescription: "Rappels 24h avant vos événements",
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
-      color: Color(0xFF7C3AED),
-    );
-
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentSound: true,
-    );
-
-    await _plugin.zonedSchedule(
-      (eventId.hashCode + 10000),
-      '⏰ Demain — $eventTitle',
-      "Votre événement a lieu demain. Tout est prêt ?",
-      tzTime,
-      const NotificationDetails(android: androidDetails, iOS: iosDetails),
+    if (_skip) return;
+    final day = _parseDate(eventDate);
+    if (day == null) return;
+    final t = day.subtract(const Duration(hours: 24));
+    if (t.isBefore(DateTime.now())) return;
+    await _plugin.zonedSchedule(eventId.hashCode + 10000,
+      '⏰ Demain — $eventTitle', 'Votre événement a lieu demain. Tout est prêt ?',
+      tz.TZDateTime.from(t, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails('groupevent_early', 'Rappels anticipés GroupEvent', channelDescription: 'Rappels 24h avant'),
+        iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
+      ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: '$eventId',
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
   static Future<void> cancelEventReminder(int eventId) async {
-    if (Platform.isLinux || Platform.isWindows) return;
+    if (_skip) return;
     await _plugin.cancel(eventId.hashCode);
     await _plugin.cancel(eventId.hashCode + 10000);
   }
 
-  static Future<void> cancelAll() async {
-    if (Platform.isLinux || Platform.isWindows) return;
-    await _plugin.cancelAll();
+  static DateTime? _parseDate(String s) {
+    if (s.isEmpty) return null;
+    for (final fmt in ['EEE d MMM yyyy HH:mm', 'EEE d MMM yyyy', 'd MMMM yyyy', 'd MMM yyyy']) {
+      try { return DateFormat(fmt, 'fr_FR').parse(s.replaceAll('·', '').replaceAll('  ', ' ').trim()); } catch (_) {}
+    }
+    try { return DateTime.parse(s); } catch (_) { return null; }
   }
 
-  static DateTime? _parseEventDate(String dateStr) {
-    if (dateStr.trim().isEmpty) return null;
-
-    try {
-      final cleaned = dateStr.replaceAll('·', '').replaceAll('  ', ' ').trim();
-      return DateFormat('EEE d MMM yyyy HH:mm', 'fr_FR').parse(cleaned);
-    } catch (_) {}
-
-    try {
-      final cleaned = dateStr.replaceAll('·', '').trim().split(' ').take(4).join(' ');
-      return DateFormat('EEE d MMM yyyy', 'fr_FR').parse(cleaned);
-    } catch (_) {}
-
-    try { return DateTime.parse(dateStr); } catch (_) {}
-
-    try { return DateFormat('d MMMM yyyy', 'fr_FR').parse(dateStr); } catch (_) {}
-
-    try { return DateFormat('d MMM yyyy', 'fr_FR').parse(dateStr); } catch (_) {}
-
-    return null;
+  static bool isToday(String date) {
+    final d = _parseDate(date);
+    if (d == null) return false;
+    final n = DateTime.now();
+    return d.year == n.year && d.month == n.month && d.day == n.day;
   }
 
-  static bool isToday(String dateStr) {
-    final eventDay = _parseEventDate(dateStr);
-    if (eventDay == null) return false;
-    final now = DateTime.now();
-    return eventDay.year == now.year &&
-        eventDay.month == now.month &&
-        eventDay.day == now.day;
+  static int daysUntil(String date) {
+    final d = _parseDate(date);
+    if (d == null) return -999;
+    final n = DateTime.now();
+    return DateTime(d.year, d.month, d.day).difference(DateTime(n.year, n.month, n.day)).inDays;
   }
 
-  static bool isFuture(String dateStr) {
-    final eventDay = _parseEventDate(dateStr);
-    if (eventDay == null) return false;
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    return eventDay.isAfter(todayStart);
-  }
-
-  static int daysUntil(String dateStr) {
-    final eventDay = _parseEventDate(dateStr);
-    if (eventDay == null) return -999;
-    final now = DateTime.now();
-    final nowDate  = DateTime(now.year, now.month, now.day);
-    final evtDate  = DateTime(eventDay.year, eventDay.month, eventDay.day);
-    return evtDate.difference(nowDate).inDays;
-  }
+  static bool isFuture(String date) => daysUntil(date) >= 0;
 }

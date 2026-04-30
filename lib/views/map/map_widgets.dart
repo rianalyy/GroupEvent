@@ -32,7 +32,7 @@ class MapBtn extends StatelessWidget {
     child: Container(
       width: 40, height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFF2D0550).withOpacity(0.9),
+        color: AppColors.background.withOpacity(0.9),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(0.15)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8)],

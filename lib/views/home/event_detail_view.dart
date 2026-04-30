@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/event_model.dart';
+import '../../models/guest_model.dart';
 import '../../services/session_service.dart';
 import '../../viewmodels/event_viewmodel.dart';
 import '../../viewmodels/guest_viewmodel.dart';
@@ -48,20 +49,21 @@ class _EventDetailViewState extends ConsumerState<EventDetailView>
 
     if (event == null) {
       return Scaffold(body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
+        decoration: const BoxDecoration(color: AppColors.background),
         child: const Center(child: CircularProgressIndicator(color: AppColors.secondaryLight))));
     }
 
     final guestState = ref.watch(guestProvider(eventId));
     final taskState  = ref.watch(taskProvider(eventId));
     final chatState  = ref.watch(chatProvider(eventId));
-    final totalP     = guestState.guests.length + 1;
+    final confirmedCount = guestState.guests.where((g) => g.rsvpStatus.name == 'oui').length;
+    final totalP     = confirmedCount + 1;
     final budgetP    = totalP > 0 && event.budget > 0 ? event.budget / totalP : 0.0;
     final localEvent = event;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
+        decoration: const BoxDecoration(color: AppColors.background),
         child: SafeArea(
           child: Column(children: [
             buildEventHeader(context, localEvent, () => showShareSheet(context, localEvent)),

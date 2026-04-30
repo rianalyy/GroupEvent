@@ -6,12 +6,9 @@ import 'secure_storage_service.dart';
 class OtpService {
   OtpService._();
 
-  static const _apiKey = String.fromEnvironment(
-    'RESEND_API_KEY',
-    defaultValue: '',
-  );
-
-  static const _fromEmail = 'onboarding@resend.dev';
+  static const _apiKey      = String.fromEnvironment('BREVO_API_KEY',      defaultValue: '');
+  static const _senderEmail = String.fromEnvironment('BREVO_SENDER_EMAIL', defaultValue: '');
+  static const _senderName  = 'GroupEvent';
 
   static String _generate() {
     final rand = Random.secure();
@@ -23,10 +20,10 @@ class OtpService {
     if (!RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(trimmed)) {
       return (sent: false, error: 'Adresse email invalide.');
     }
-    if (_apiKey.isEmpty) {
+    if (_apiKey.isEmpty || _senderEmail.isEmpty) {
       return (
         sent: false,
-        error: 'Clé API non configurée.\nLancez l\'app avec :\n./env.sh run',
+        error: 'Clé API non configurée.\nLancez l\'app avec : ./env.sh run',
       );
     }
 
@@ -35,39 +32,33 @@ class OtpService {
     await SecureStorageService.saveOtp(trimmed, otp, expiry);
 
     try {
-      final resp = await http
-          .post(
-            Uri.parse('https://api.resend.com/emails'),
-            headers: {
-              'Authorization': 'Bearer $_apiKey',
-              'Content-Type':  'application/json',
-            },
-            body: jsonEncode({
-              'from':    _fromEmail,
-              'to':      [trimmed],
-              'subject': 'GroupEvent — Code de vérification',
-              'html':    _buildHtml(otp),
-            }),
-          )
-          .timeout(const Duration(seconds: 15));
+      final resp = await http.post(
+        Uri.parse('https://api.brevo.com/v3/smtp/email'),
+        headers: {
+          'api-key':      _apiKey,
+          'Content-Type': 'application/json',
+          'Accept':       'application/json',
+        },
+        body: jsonEncode({
+          'sender':      {'name': _senderName, 'email': _senderEmail},
+          'to':          [{'email': trimmed}],
+          'subject':     'GroupEvent — Code de vérification',
+          'htmlContent': _buildHtml(otp),
+        }),
+      ).timeout(const Duration(seconds: 15));
 
-      if (resp.statusCode == 200 || resp.statusCode == 201) {
-        return (sent: true, error: null);
-      }
+      if (resp.statusCode == 201) return (sent: true, error: null);
 
       String errMsg;
       try {
         final body = jsonDecode(resp.body);
-        errMsg = body['message'] ?? 'Erreur Resend (${resp.statusCode})';
+        errMsg = body['message'] ?? 'Erreur Brevo (${resp.statusCode})';
       } catch (_) {
         errMsg = 'Erreur ${resp.statusCode}: ${resp.body}';
       }
       return (sent: false, error: errMsg);
     } catch (_) {
-      return (
-        sent: false,
-        error: 'Connexion impossible. Vérifiez votre réseau.',
-      );
+      return (sent: false, error: 'Connexion impossible. Vérifiez votre réseau.');
     }
   }
 

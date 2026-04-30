@@ -95,7 +95,7 @@ Widget buildInfoCard(BuildContext context, EventModel event, double budgetP, int
             Container(width: 1, height: 32, color: Colors.white.withOpacity(0.1)),
             Expanded(child: Padding(padding: const EdgeInsets.only(left: 14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Par pers. (÷ $totalP)', style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                Text('Par confirmé (÷ $totalP)', style: const TextStyle(color: Colors.white38, fontSize: 11)),
                 Text(budgetP > 0 ? '${budgetP.toStringAsFixed(0)} Ar' : '— Ar',
                     style: const TextStyle(color: AppColors.success, fontSize: 16, fontWeight: FontWeight.bold)),
               ]))),
@@ -159,7 +159,7 @@ void showShareSheet(BuildContext context, EventModel event) {
   final link = 'groupevent://invite/${event.inviteCode ?? event.id}';
   showModalBottomSheet(
     context: context, isScrollControlled: true,
-    backgroundColor: const Color(0xFF2D0550),
+    backgroundColor: AppColors.background,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (ctx) => SingleChildScrollView(
       padding: const EdgeInsets.all(24),

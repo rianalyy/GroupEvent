@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:intl/intl.dart';
+import '../core/constants/app_colors.dart';
 
 class NotificationService {
   NotificationService._();
@@ -53,7 +54,7 @@ class NotificationService {
       NotificationDetails(
         android: AndroidNotificationDetails('groupevent_reminders', 'Rappels GroupEvent',
             channelDescription: 'Rappels jour J', importance: Importance.high, priority: Priority.high,
-            color: const Color(0xFF7C3AED)),
+            color: AppColors.primary),
         iOS: const DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

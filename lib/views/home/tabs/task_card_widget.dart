@@ -7,13 +7,20 @@ import '../../../viewmodels/task_viewmodel.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
-  final List<GuestModel> guests;
+  final List<GuestModel> confirmedGuests;
   final int eventId;
   final bool isOwner;
   final bool canToggle;
   final WidgetRef ref;
-  const TaskCard({required this.task, required this.guests, required this.eventId,
-      required this.isOwner, required this.canToggle, required this.ref});
+
+  const TaskCard({
+    required this.task,
+    required this.confirmedGuests,
+    required this.eventId,
+    required this.isOwner,
+    required this.canToggle,
+    required this.ref,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,8 +44,11 @@ class TaskCard extends StatelessWidget {
             duration: const Duration(milliseconds: 200), width: 22, height: 22,
             decoration: BoxDecoration(shape: BoxShape.circle,
               color: task.isDone ? AppColors.success : Colors.transparent,
-              border: Border.all(color: task.isDone ? AppColors.success : canToggle ? AppColors.secondaryLight : Colors.white24, width: 2)),
-            child: task.isDone ? const Icon(Icons.check, color: Colors.white, size: 13)
+              border: Border.all(
+                  color: task.isDone ? AppColors.success : canToggle ? AppColors.secondaryLight : Colors.white24,
+                  width: 2)),
+            child: task.isDone
+                ? const Icon(Icons.check, color: Colors.white, size: 13)
                 : canToggle ? null : const Icon(Icons.lock_outline_rounded, color: Colors.white24, size: 11),
           ),
         ),
@@ -46,15 +56,18 @@ class TaskCard extends StatelessWidget {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(task.title, style: TextStyle(color: task.isDone ? Colors.white38 : AppColors.white, fontSize: 13,
               decoration: task.isDone ? TextDecoration.lineThrough : null, decorationColor: Colors.white38)),
-          if (hasAssignee) Row(children: [
-            const Icon(Icons.person_pin_rounded, color: AppColors.secondaryLight, size: 12),
-            const SizedBox(width: 4),
-            Text(task.assignedToName!, style: const TextStyle(color: AppColors.secondaryLight, fontSize: 11)),
-          ]) else const Text('Non assigné', style: TextStyle(color: Colors.white24, fontSize: 11)),
+          if (hasAssignee)
+            Row(children: [
+              const Icon(Icons.person_pin_rounded, color: AppColors.secondaryLight, size: 12),
+              const SizedBox(width: 4),
+              Text(task.assignedToName!, style: const TextStyle(color: AppColors.secondaryLight, fontSize: 11)),
+            ])
+          else
+            const Text('Non assigné', style: TextStyle(color: Colors.white24, fontSize: 11)),
         ])),
-        if (isOwner && guests.isNotEmpty)
+        if (isOwner && confirmedGuests.isNotEmpty)
           GestureDetector(
-            onTap: () => showAssign(context),
+            onTap: () => _showAssign(context),
             child: Container(padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(8)),
               child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white38, size: 15)),
@@ -69,25 +82,67 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  void showAssign(BuildContext context) {
-    showModalBottomSheet(context: context, backgroundColor: const Color(0xFF2D0550),
+  void _showAssign(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('Assigner "${task.title}"', style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          ListTile(leading: const Icon(Icons.person_off_outlined, color: Colors.white54),
-              title: const Text('Non assigné', style: TextStyle(color: Colors.white70)),
-              trailing: !task.hasAssignee ? const Icon(Icons.check_circle, color: AppColors.success, size: 18) : null,
-              onTap: () { ref.read(taskProvider(eventId).notifier).unassign(task.id!, eventId); Navigator.pop(ctx); }),
+          Text('Assigner "${task.title}"',
+              style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: AppColors.success.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.success.withOpacity(0.25)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.check_circle_outline, color: AppColors.success, size: 13),
+              const SizedBox(width: 6),
+              Expanded(child: Text(
+                'Seuls les invités ayant répondu "Oui" apparaissent ici.',
+                style: const TextStyle(color: AppColors.success, fontSize: 11),
+              )),
+            ]),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person_off_outlined, color: Colors.white54),
+            title: const Text('Non assigné', style: TextStyle(color: Colors.white70)),
+            trailing: !task.hasAssignee
+                ? const Icon(Icons.check_circle, color: AppColors.success, size: 18)
+                : null,
+            onTap: () {
+              ref.read(taskProvider(eventId).notifier).unassign(task.id!, eventId);
+              Navigator.pop(ctx);
+            },
+          ),
           Divider(color: Colors.white.withOpacity(0.08)),
-          ...guests.map((g) => ListTile(
-            leading: CircleAvatar(radius: 16, backgroundColor: AppColors.primary.withOpacity(0.3),
-                child: Text(g.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 12))),
+          ...confirmedGuests.map((g) => ListTile(
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: AppColors.success.withOpacity(0.2),
+              child: Text(g.name[0].toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontSize: 12)),
+            ),
             title: Text(g.name, style: const TextStyle(color: AppColors.white)),
-            trailing: task.assignedToGuestId == g.id ? const Icon(Icons.check_circle, color: AppColors.success, size: 18) : null,
-            onTap: () { ref.read(taskProvider(eventId).notifier).assignToGuest(task.id!, g.id, eventId); Navigator.pop(ctx); },
+            subtitle: Row(children: [
+              const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 11),
+              const SizedBox(width: 3),
+              const Text('Confirmé', style: TextStyle(color: AppColors.success, fontSize: 10)),
+            ]),
+            trailing: task.assignedToGuestId == g.id
+                ? const Icon(Icons.check_circle, color: AppColors.success, size: 18)
+                : null,
+            onTap: () {
+              ref.read(taskProvider(eventId).notifier).assignToGuest(task.id!, g.id, eventId);
+              Navigator.pop(ctx);
+            },
           )),
         ]),
       ),

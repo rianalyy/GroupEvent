@@ -85,7 +85,8 @@ class RsvpTab extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(child: Text(status.label,
                     style: TextStyle(
-                      color: isSelected ? status.color : Colors.white70, fontSize: 16,
+                      color: isSelected ? status.color : Colors.white70, 
+                      fontSize: 16,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal))),
                 if (isSelected) Icon(Icons.check_circle_rounded, color: status.color, size: 20),
               ]),

@@ -73,7 +73,7 @@ class _MapViewState extends State<MapView> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(body: Container(decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
+      return Scaffold(body: Container(decoration: const BoxDecoration(color: AppColors.background),
           child: const Center(child: CircularProgressIndicator(color: AppColors.secondaryLight))));
     }
     if (_eventPosition == null) {
@@ -111,7 +111,7 @@ class _MapViewState extends State<MapView> {
     return SafeArea(child: Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF2D0550), borderRadius: BorderRadius.circular(20),
+      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white.withOpacity(0.12)),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, -4))]),
       child: Column(mainAxisSize: MainAxisSize.min, children: [

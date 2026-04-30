@@ -22,7 +22,7 @@ class JourJTab extends StatelessWidget {
     final daysLeft = NotificationService.daysUntil(event.date);
     final isPast   = daysLeft < 0;
     final confirmed = guestState.guests.where((g) => g.rsvpStatus == RsvpStatus.oui).length;
-    final totalP    = guestState.guests.length + 1;
+    final totalP    = confirmed + 1;
     final budgetP   = totalP > 0 ? event.budget / totalP : event.budget;
     final total = taskState.tasks.length;
     final done  = taskState.tasks.where((t) => t.isDone).length;
@@ -51,7 +51,7 @@ class JourJTab extends StatelessWidget {
         CheckItem(icon: Icons.group_rounded, label: 'Participants confirmés',
             value: '$confirmed confirmé(s) / ${guestState.guests.length} invité(s)', isDone: confirmed > 0),
         CheckItem(icon: Icons.account_balance_wallet_rounded, label: 'Budget',
-            value: event.budget > 0 ? '${event.budget.toStringAsFixed(0)} Ar total · ${budgetP.toStringAsFixed(0)} Ar/pers.' : 'Non défini',
+            value: event.budget > 0 ? '${event.budget.toStringAsFixed(0)} Ar total · ${budgetP.toStringAsFixed(0)} Ar/confirmé' : 'Non défini',
             isDone: event.budget > 0),
         CheckItem(icon: Icons.task_alt_rounded, label: 'Tâches',
             value: total > 0 ? '$done / $total terminée(s)' : 'Aucune tâche définie',

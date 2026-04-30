@@ -12,7 +12,7 @@ class WelcomeView extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+          color: AppColors.background,
         ),
         child: SafeArea(
           child: Padding(

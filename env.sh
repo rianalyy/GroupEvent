@@ -1,16 +1,23 @@
 #!/bin/bash
+# Usage : ./env.sh run
+# Usage : ./env.sh build apk
+# Usage : ./env.sh build linux
 
 if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
-if [ -z "$RESEND_API_KEY" ]; then
+if [ -z "$BREVO_API_KEY" ] || [ -z "$BREVO_SENDER_EMAIL" ]; then
   echo ""
-  echo "ERREUR : RESEND_API_KEY non défini."
-  echo "1. Copiez .env.example en .env"
-  echo "2. Ajoutez votre clé Resend dans .env"
+  echo "ERREUR : Variables manquantes dans .env"
+  echo ""
+  echo "Copiez .env.example en .env et remplissez :"
+  echo "  BREVO_API_KEY=votre_cle"
+  echo "  BREVO_SENDER_EMAIL=votre@email.com"
   echo ""
   exit 1
 fi
 
-flutter "$@" --dart-define="RESEND_API_KEY=$RESEND_API_KEY"
+flutter "$@" \
+  --dart-define="BREVO_API_KEY=$BREVO_API_KEY" \
+  --dart-define="BREVO_SENDER_EMAIL=$BREVO_SENDER_EMAIL"

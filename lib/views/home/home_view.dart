@@ -36,7 +36,7 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
+        decoration: const BoxDecoration(color: AppColors.background),
         child: SafeArea(
           child: Column(children: [
             Padding(
@@ -54,7 +54,7 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
                       if (mounted) Navigator.pushNamedAndRemoveUntil(context, AppRoutes.welcome, (r) => false);
                     }
                   },
-                  color: const Color(0xFF3A0860),
+                  color: AppColors.primaryDark,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   itemBuilder: (_) => [const PopupMenuItem(value: 'logout', child: Row(children: [
                     Icon(Icons.logout_rounded, color: AppColors.error, size: 18), SizedBox(width: 10),

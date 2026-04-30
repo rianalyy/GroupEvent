@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF7C3AED);
-  static const Color primaryDark = Color(0xFF4C0A7A);
-  static const Color primaryLight = Color(0xFFA855F7);
-  static const Color secondary = Color(0xFFA78BFA);
-  static const Color secondaryLight = Color(0xFFD8B4FE);
+  static const Color primary = Color(0xFFAD46FF);
+  static const Color primaryDark = Color(0xFF7B1FCC);
+  static const Color primaryLight = Color(0xFFC97BFF);
+  static const Color secondary = Color(0xFFBF7AFF);
+  static const Color secondaryLight = Color(0xFFDFB3FF);
 
-  static const Color background = Color(0xFFF9FAFB);
+  static const Color background = Color(0xFF10001C);
   static const Color surface = Color(0xFFFFFFFF);
 
   static const Color text = Color(0xFF1F2937);
@@ -23,11 +23,11 @@ class AppColors {
   static Color glassBorder = Colors.white.withOpacity(0.25);
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+    colors: [Color(0xFFC97BFF), Color(0xFFAD46FF)],
   );
 
   static const LinearGradient secondaryGradient = LinearGradient(
-    colors: [Color(0xFFD8B4FE), Color(0xFFA78BFA)],
+    colors: [Color(0xFFDFB3FF), Color(0xFFBF7AFF)],
   );
 
   static const LinearGradient backgroundGradient = LinearGradient(

@@ -39,52 +39,21 @@ class TasksTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = taskState.totalTasks;
     final done  = taskState.doneTasks;
-    final nbGuests = guestState.guests.length;
-    final totalP = nbGuests + 1;
-    final budgetP = totalP > 0 && budget > 0 ? budget / totalP : 0.0;
-    final tasksP  = total > 0 && nbGuests > 0 ? (total / totalP).ceil() : total;
+
+    final confirmedGuests = guestState.guests
+        .where((g) => g.rsvpStatus == RsvpStatus.oui)
+        .toList();
+    final totalConfirmed = confirmedGuests.length + 1;
+    final budgetP = budget > 0 ? budget / totalConfirmed : 0.0;
+    final tasksP  = total > 0 ? (total / totalConfirmed).ceil() : 0;
+
+    final pendingOrMaybe = guestState.guests
+        .where((g) => g.rsvpStatus == RsvpStatus.pending || g.rsvpStatus == RsvpStatus.peutEtre)
+        .length;
 
     return Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(14)),
-          child: Column(children: [
-            Row(children: [
-              DashIcon(icon: Icons.account_balance_wallet_outlined, color: AppColors.success),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Budget par participant', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                Text(budgetP > 0 ? '${budgetP.toStringAsFixed(0)} Ar  ×  $totalP pers.' : 'Budget non défini',
-                    style: const TextStyle(color: AppColors.success, fontSize: 14, fontWeight: FontWeight.bold)),
-              ])),
-            ]),
-            const SizedBox(height: 8),
-            Divider(color: Colors.white.withOpacity(0.08)),
-            const SizedBox(height: 8),
-            Row(children: [
-              DashIcon(icon: Icons.checklist_rounded, color: AppColors.secondaryLight),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(total > 0 ? '$total tâche(s) • $done terminée(s)' : 'Aucune tâche',
-                    style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                if (total > 0 && nbGuests > 0)
-                  Text('≈ $tasksP tâche(s) par participant',
-                      style: const TextStyle(color: AppColors.secondaryLight, fontSize: 13, fontWeight: FontWeight.w600)),
-              ])),
-            ]),
-            if (total > 0) ...[
-              const SizedBox(height: 10),
-              ClipRRect(borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(value: taskState.progressPercent, minHeight: 5,
-                    backgroundColor: Colors.white.withOpacity(0.1),
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success))),
-            ],
-          ]),
-        ),
-      ),
-      if (isOwner) _buildButtons(context),
+      _buildSummaryCard(total, done, confirmedGuests.length, totalConfirmed, budgetP, tasksP, pendingOrMaybe),
+      if (isOwner) _buildButtons(context, confirmedGuests),
       Expanded(
         child: taskState.isLoading
             ? const Center(child: CircularProgressIndicator(color: AppColors.secondaryLight))
@@ -99,14 +68,86 @@ class TasksTab extends StatelessWidget {
                     itemCount: taskState.tasks.length,
                     itemBuilder: (ctx, i) {
                       final task = taskState.tasks[i];
-                      return TaskCard(task: task, guests: guestState.guests, eventId: eventId,
-                          isOwner: isOwner, canToggle: _canToggle(task), ref: ref);
+                      return TaskCard(
+                        task: task,
+                        confirmedGuests: confirmedGuests,
+                        eventId: eventId,
+                        isOwner: isOwner,
+                        canToggle: _canToggle(task),
+                        ref: ref,
+                      );
                     }),
       ),
     ]);
   }
 
-  Widget _buildButtons(BuildContext context) {
+  Widget _buildSummaryCard(int total, int done, int nbConfirmed, int totalConfirmed,
+      double budgetP, int tasksP, int pendingOrMaybe) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(14)),
+        child: Column(children: [
+          Row(children: [
+            DashIcon(icon: Icons.account_balance_wallet_outlined, color: AppColors.success),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Budget par confirmé', style: TextStyle(color: Colors.white54, fontSize: 11)),
+              Text(budget > 0
+                  ? '${budgetP.toStringAsFixed(0)} Ar  ×  $totalConfirmed confirmé(s)'
+                  : 'Budget non défini',
+                  style: const TextStyle(color: AppColors.success, fontSize: 14, fontWeight: FontWeight.bold)),
+            ])),
+          ]),
+          const SizedBox(height: 8),
+          Divider(color: Colors.white.withOpacity(0.08)),
+          const SizedBox(height: 8),
+          Row(children: [
+            DashIcon(icon: Icons.checklist_rounded, color: AppColors.secondaryLight),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(total > 0 ? '$total tâche(s) • $done terminée(s)' : 'Aucune tâche',
+                  style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              if (total > 0 && nbConfirmed > 0)
+                Text('≈ $tasksP tâche(s) par confirmé',
+                    style: const TextStyle(color: AppColors.secondaryLight, fontSize: 13, fontWeight: FontWeight.w600)),
+            ])),
+          ]),
+          if (total > 0) ...[
+            const SizedBox(height: 10),
+            ClipRRect(borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(value: taskState.progressPercent, minHeight: 5,
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success))),
+          ],
+          if (pendingOrMaybe > 0) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 14),
+                const SizedBox(width: 6),
+                Expanded(child: Text(
+                  '$pendingOrMaybe invité(s) n\'ont pas encore confirmé (RSVP "Oui"). '
+                  'La répartition exclut les "Peut-être" et "Non".',
+                  style: const TextStyle(color: AppColors.warning, fontSize: 11),
+                )),
+              ]),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildButtons(BuildContext context, List<GuestModel> confirmedGuests) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Row(children: [
@@ -126,13 +167,14 @@ class TasksTab extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(child: GestureDetector(
           onTap: taskState.isDistributing ? null : () async {
-            if (guestState.guests.isEmpty || currentUser == null) {
+            if (confirmedGuests.isEmpty && currentUser == null) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text("Invitez d'abord des participants."), backgroundColor: AppColors.warning));
+                  content: Text("Aucun confirmé pour répartir les tâches."),
+                  backgroundColor: AppColors.warning));
               return;
             }
             final msg = await ref.read(taskProvider(eventId).notifier).autoDistribute(
-                guests: guestState.guests, creator: currentUser!, eventId: eventId);
+                allGuests: guestState.guests, creator: currentUser!, eventId: eventId);
             if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(msg), backgroundColor: AppColors.success, duration: const Duration(seconds: 3)));
           },
@@ -159,7 +201,7 @@ class TasksTab extends StatelessWidget {
   void _showAddTask(BuildContext context) {
     final ctrl = TextEditingController();
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: const Color(0xFF2D0550),
+      context: context, isScrollControlled: true, backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
@@ -190,4 +232,3 @@ class TasksTab extends StatelessWidget {
     );
   }
 }
-

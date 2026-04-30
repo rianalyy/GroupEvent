@@ -82,23 +82,28 @@ class TaskNotifier extends FamilyNotifier<TaskState, int> {
   }
 
   Future<String> autoDistribute({
-    required List<GuestModel> guests,
+    required List<GuestModel> allGuests,
     required UserModel creator,
     required int eventId,
   }) async {
     if (state.tasks.isEmpty) return 'Aucune tâche à répartir.';
 
+    final confirmedGuests = allGuests
+        .where((g) => g.rsvpStatus == RsvpStatus.oui)
+        .toList();
+
     state = state.copyWith(isDistributing: true);
     final allTasks = List<TaskModel>.from(state.tasks);
-    final totalParticipants = guests.length + 1;
+    final totalParticipants = confirmedGuests.length + 1;
 
     for (var i = 0; i < allTasks.length; i++) {
       final slot = i % totalParticipants;
       if (slot == 0) {
-        await DatabaseService.updateTaskAssignment(allTasks[i].id!, guestId: null, userId: creator.id);
+        await DatabaseService.updateTaskAssignment(
+            allTasks[i].id!, guestId: null, userId: creator.id);
       } else {
-        final guest = guests[slot - 1];
-        await DatabaseService.updateTaskAssignment(allTasks[i].id!, guestId: guest.id, userId: null);
+        await DatabaseService.updateTaskAssignment(
+            allTasks[i].id!, guestId: confirmedGuests[slot - 1].id, userId: null);
       }
     }
 
@@ -111,8 +116,9 @@ class TaskNotifier extends FamilyNotifier<TaskState, int> {
         ? '$base tâche(s) par participant'
         : '$base ou ${base + 1} tâche(s) par participant';
 
-    return '${allTasks.length} tâche(s) réparties entre $totalParticipants participants ($detail).';
+    return '${allTasks.length} tâche(s) réparties entre $totalParticipants confirmés ($detail).';
   }
 }
 
-final taskProvider = NotifierProviderFamily<TaskNotifier, TaskState, int>(TaskNotifier.new);
+final taskProvider =
+    NotifierProviderFamily<TaskNotifier, TaskState, int>(TaskNotifier.new);

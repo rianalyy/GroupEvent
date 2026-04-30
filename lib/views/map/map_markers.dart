@@ -55,7 +55,7 @@ class MapActionBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(width: 40, height: 40,
-      decoration: BoxDecoration(color: const Color(0xFF2D0550).withOpacity(0.9), borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(color: AppColors.background.withOpacity(0.9), borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withOpacity(0.15)),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8)]),
       child: Icon(icon, size: 20, color: Colors.white)),

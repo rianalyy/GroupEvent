@@ -23,7 +23,7 @@ void showCreateEventSheet(BuildContext context, WidgetRef ref) {
 
   showModalBottomSheet(
     context: context, isScrollControlled: true,
-    backgroundColor: const Color(0xFF2D0550),
+    backgroundColor: AppColors.background,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) {
@@ -52,16 +52,16 @@ void showCreateEventSheet(BuildContext context, WidgetRef ref) {
                 final p = await showDatePicker(context: ctx, initialDate: DateTime.now().add(const Duration(days: 1)),
                     firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 730)),
                     builder: (c, child) => Theme(data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(
-                        primary: AppColors.primaryLight, onPrimary: Colors.white, surface: Color(0xFF3A0860), onSurface: Colors.white),
-                        dialogBackgroundColor: const Color(0xFF2D0550)), child: child!));
+                        primary: AppColors.primaryLight, onPrimary: Colors.white, surface: AppColors.primaryDark, onSurface: Colors.white),
+                        dialogBackgroundColor: AppColors.background), child: child!));
                 if (p != null) set(() => selectedDate = p);
               })),
               const SizedBox(width: 8),
               Expanded(flex: 2, child: _DateBtn(label: timeLabel, hasValue: selectedTime != null, icon: Icons.access_time_rounded, onTap: () async {
                 final p = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 18, minute: 0),
                     builder: (c, child) => Theme(data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(
-                        primary: AppColors.primaryLight, onPrimary: Colors.white, surface: Color(0xFF3A0860), onSurface: Colors.white),
-                        dialogBackgroundColor: const Color(0xFF2D0550)), child: child!));
+                        primary: AppColors.primaryLight, onPrimary: Colors.white, surface: AppColors.primaryDark, onSurface: Colors.white),
+                        dialogBackgroundColor: AppColors.background), child: child!));
                 if (p != null) set(() => selectedTime = p);
               })),
             ]),

@@ -77,7 +77,7 @@ class GuestsTab extends StatelessWidget {
     String? errorMsg;
     showModalBottomSheet(
       context: context, isScrollControlled: true,
-      backgroundColor: const Color(0xFF2D0550),
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) => Padding(
